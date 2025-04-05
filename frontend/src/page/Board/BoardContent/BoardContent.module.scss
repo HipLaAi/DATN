@@ -1,0 +1,77 @@
+.board-content {
+  overflow: hidden;
+  height: calc( 100vh - 90px );
+  display: flex;
+    .list-column {
+      padding: 10px;  
+      height: 100%; 
+      overflow-x: auto;
+      overflow-y: hidden;  
+      
+    }  
+  }
+  .column {
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
+    max-width: 300px;
+    max-height: 100%;
+    border-radius: 5px;
+    padding: 5px 7px 10px 14px;
+    background-color: #f1f2f4;   
+    &-title {
+      outline: none;
+      background-color: transparent;
+      border: 0;
+      &:hover{
+        background-color: transparent;
+      }
+      &:active{
+        background-color: transparent;
+      }
+      &:focus{
+        background-color: #ffffff;
+      }
+    }
+    &-action {
+      display: flex;  
+      button:nth-child(1) {
+        justify-content: start;
+        flex: 1;
+      }    
+    }     
+    h5 {
+      margin: 0;
+      margin-right: 7px;
+      padding: 0 14px 5px 14px;
+    }
+    .list-card {
+      flex: 1;
+      height: 100%;
+      padding: 0 7px 10px 0; 
+      border-radius: 5px;
+      overflow-y: auto;
+      overflow-x: hidden;   
+      
+      &-item {
+        .btn-edit{
+          visibility: hidden;
+          transition: all 0.01s;
+        }
+        &:hover{
+          .btn-edit{
+            visibility: visible;
+          }
+        }
+        .card-action {
+         gap: 20px;
+         &-deadline {
+          margin: 3px 0;
+          background: green;
+          padding: 1px 5px;
+          border-radius: 5px;
+         }
+        }
+      }
+    }  
+}

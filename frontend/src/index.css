@@ -1,0 +1,21 @@
+/* ::-webkit-scrollbar {
+  width: 20px;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px
+}
+*::-webkit-scrollbar-thumb {
+  background: '#dcdde1';
+  border-radius: 8px
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: white;
+  border-radius: '8px'
+} */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import './style/tailwind.css';

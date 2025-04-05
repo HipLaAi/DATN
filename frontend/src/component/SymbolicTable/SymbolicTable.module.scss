@@ -1,0 +1,53 @@
+
+.table-title {
+  width: 23.5%;
+  background: blue;
+  border-radius: 3px;
+  padding: 8px;
+  display: block;
+  
+  &-details {
+    display: flex;
+    flex-direction: column;
+    height: 80px;
+    justify-content: space-between;
+    position: relative;
+
+    &-name {
+      margin: 0;
+      font-weight: 700;
+      color: #fff;
+    }
+    &-option {
+      color: #fff;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      overflow: hidden;
+
+      span {
+        position: relative;
+        display: flex;
+        align-items: center;
+        margin-right: 6px;
+        right: -4px;
+        
+        svg {
+          width: 0px;
+          font-size: 14px;
+          transition-duration: .15s;
+          transition-property: color, background, opacity, transform, width, margin;
+
+          &:active {
+            fill: yellow
+          }
+        }
+      }
+    }
+  }
+  &:hover {
+    svg {
+      width: 18px;
+    }
+  }
+}

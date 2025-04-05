@@ -1,0 +1,17 @@
+.home-layout  {
+  background-color: #fff;
+
+  &-sidebar {
+    margin-top: 30px;
+  }
+
+  &-content {
+    background-color: #fff;
+
+    &-main {
+      padding-left: 20px;
+      background-color: #fff;
+    }
+  }
+
+}

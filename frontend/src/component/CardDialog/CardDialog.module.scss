@@ -1,0 +1,31 @@
+.button{
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 10px;
+}
+.listwork{
+    display: flex;
+    justify-content: space-between;
+    transition: all 0.1s linear;
+
+    &-button-hidden{
+        display: flex;
+        gap: 4px;
+        opacity: 0;
+        transition: opacity 0.15s linear;
+    }
+
+    &-button-show{
+        display: flex;
+        gap: 4px;
+    }
+
+    &:hover{
+        border-radius: 8px;
+        background-color: rgba(0, 0, 0, 0.095);
+        
+        .listwork-button-hidden{
+            opacity: 1;
+        }
+    }
+}

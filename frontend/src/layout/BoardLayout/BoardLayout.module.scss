@@ -1,0 +1,18 @@
+.layout{
+  .sidebar{
+      padding: 20px 0;
+      &-top {
+        span {
+          flex-shrink: 0;
+        }
+        .btn {
+          width: fit-content;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0
+        }
+      }
+  }
+}

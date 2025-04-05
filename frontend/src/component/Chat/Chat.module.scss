@@ -1,0 +1,50 @@
+.chat {
+  position: fixed;
+  z-index: 100;
+  bottom: 10px;
+  right: 100px;
+  display: flex;
+  flex-direction: column;
+  height: 455px;
+  width: 328px;
+  background-color: aqua;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  h5 {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  &-content {
+    flex: 1;
+    overflow: auto;
+  }
+  &-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap:10px;
+    background-color: #eee;
+    padding: 10px;
+    textarea {
+      flex: 1;
+      outline: none;
+      border: 0;
+      background-color: transparent;
+      &:focus{
+        background-color: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+      &:hover{
+        background-color: transparent;
+      }
+    }
+  }
+}
+.btn-send {
+  position: relative;
+  right: 3px;
+  font-weight: 600;
+}
