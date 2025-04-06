@@ -20,6 +20,16 @@ userRouter.post(
 );
 
 userRouter.post(
+    '/googlelogin',
+    userController.googleLogin.bind(userController)
+);
+
+userRouter.post(
+    '/refreshtoken',
+    userController.refreshToken.bind(userController)
+);
+
+userRouter.post(
     '/search',
     authenticate,
     userController.search.bind(userController)

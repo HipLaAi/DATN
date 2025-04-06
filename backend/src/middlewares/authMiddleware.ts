@@ -1,22 +1,31 @@
 import { NextFunction, Request, Response } from 'express';
-import { verifyToken } from '../config/jwt';
+import { verifyAccessToken } from '../config/jwt';
 
 export const authenticate = (
     req: Request,
     res: Response,
     next: NextFunction,
 ) => {
-    // Get the JWT token from the Authorization header
-    // const token = req.headers.authorization?.split(' ')[1];
-    const token = req.cookies.token
+    const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
-        return res.status(403).json({ message: 'You are not authorized!' });
+        return res.status(401).json({ message: 'No token provided' });
     }
-    // Verify the token
-    const decodedToken = verifyToken(token);
-    if (!decodedToken) {
-        return res.status(403).json({ message: 'You are not authorized!' });
+
+    const decoded = verifyAccessToken(token);
+    if (!decoded) {
+        return res.status(401).json({ message: 'Invalid token' });
     }
-    (req as any).user = decodedToken;
+
+    (req as any).user = decoded;
     next();
+};
+
+export const authorize = (...roles: string[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        const user = (req as any).user;
+        if (!user || !roles.includes(user.role)) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+        next();
+    };
 };
