@@ -6,17 +6,21 @@ import route from './router/router';
 import GlobalStyles from './component/GlobalStyles/GlobalStyles';
 import { HappyProvider } from '@ant-design/happy-work-theme';
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Provider } from "react-redux";
+import { store } from './store/userStore';
 
-const clientId = "773369221523-4bujhgj3bk7a4loqcg0esca548te61kf.apps.googleusercontent.com"
+const clientId = import.meta.env.VITE_GG_CLIENT_ID as string;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={clientId}>
-      <HappyProvider>
-        <GlobalStyles>
-          <RouterProvider router={route} />
-        </GlobalStyles>
-      </HappyProvider>
-    </GoogleOAuthProvider>
+    <Provider store={store}>
+      <GoogleOAuthProvider clientId={clientId}>
+        <HappyProvider>
+          <GlobalStyles>
+            <RouterProvider router={route} />
+          </GlobalStyles>
+        </HappyProvider>
+      </GoogleOAuthProvider>
+    </Provider>
   </StrictMode>,
 );

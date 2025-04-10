@@ -4,30 +4,20 @@ import { Col, Row, Flex, Button, Input, Avatar, Badge } from "antd";
 import { BsGrid3X3Gap } from "react-icons/bs";
 import { BsTrello } from "react-icons/bs";
 import { IoSearchOutline } from "react-icons/io5";
-import { UserOutlined } from '@ant-design/icons';
 import { Link } from "react-router-dom";
 import MenuHeader from "../DropDow/Dropdow";
 import { notificationMenuItem, recentlyMenuItem, starMenuItem, userMenuItem, worksapcesMenuItem } from "./MenuItem/MenuItem";
 import { FaRegBell } from "react-icons/fa";
 import ModalHeader from "./ModalHeader/ModalHeader";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Conversation from "../ConverStation/ConverStation";
 
 const cx = classNames.bind(styles);
 
 const Header = (props: any) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userAvatar, setUserAvatar] = useState<any>(null);
-  const [userName, setUserName] = useState<any>(null);
-
-  useEffect(() => {
-    const avatar = localStorage.getItem("user_avatar");
-    const name = localStorage.getItem("user_name");
-    if (avatar && name) {
-      setUserAvatar(avatar);
-      setUserName(name);
-    }
-  }, []);
+  const avatar = localStorage.getItem("avatar");
+  const name = localStorage.getItem("name");
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -75,7 +65,7 @@ const Header = (props: any) => {
                   <FaRegBell size={18} />
                 </Badge>} items={notificationMenuItem} />
               <Conversation handleOPenChat={props.handleOPenChat} resetConverSation={props.resetConverSation}/>
-              <MenuHeader Icon={<Avatar shape="circle" size="small" src={userAvatar} title={userName} />} items={userMenuItem} />
+              <MenuHeader Icon={<Avatar shape="circle" size="small" src={avatar} title={name} />} items={userMenuItem} />
             </Flex>
           </Col>
         </Row>

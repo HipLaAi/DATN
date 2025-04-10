@@ -6,6 +6,7 @@ import { IoMdMore } from "react-icons/io";
 import { mockData } from "../../../api/mock-data";
 import { FiMoreVertical } from "react-icons/fi";
 import { IoSearchOutline } from "react-icons/io5";
+import { URL } from "../../../utils/url";
 
 const { Text, Title } = Typography
 
@@ -199,60 +200,60 @@ export const notificationMenuItem: MenuProps["items"] = [
 
 ]
 
-export const chatMenuItems = (data: any[], action:(converSation:any)=>void): MenuProps["items"] => [
-    {
-      label: <>
-        <Flex
-          style={{
-            width: "360px",
-            borderRadius: "5px",
-          }}
-          vertical
-        >
-          <Flex align="center" gap="10px">
-            <Button type="text" shape="circle"><FiMoreVertical /></Button>
-            <Input placeholder="Tìm kiếm" prefix={<IoSearchOutline size={15} />} style={{ flex: 1, borderRadius: "100px" }} />
-          </Flex>
+export const chatMenuItems = (data: any[], action: (converSation: any) => void): MenuProps["items"] => [
+  {
+    label: <>
+      <Flex
+        style={{
+          width: "360px",
+          borderRadius: "5px",
+        }}
+        vertical
+      >
+        <Flex align="center" gap="10px">
+          <Button type="text" shape="circle"><FiMoreVertical /></Button>
+          <Input placeholder="Tìm kiếm" prefix={<IoSearchOutline size={15} />} style={{ flex: 1, borderRadius: "100px" }} />
         </Flex>
-      </>,
-      key: '0',
-      disabled: true
-    },
-    ...data.map((item, index) => ({
-      label: <>
-        <Flex
-          style={{
-            width: "360px",
-            borderRadius: "5px",
-          }}
-          vertical
-        >
-          <>
-            <Flex align="center" gap="20px" onClick={()=>action(item)}>
-              {
-                item?.avatar ? (
-                  <Avatar
-                    src={item?.avatar.replace("D:\\DA4\\frontend\\", "")}
-                    size="large"
+      </Flex>
+    </>,
+    key: '0',
+    disabled: true
+  },
+  ...data.map((item, index) => ({
+    label: <>
+      <Flex
+        style={{
+          width: "360px",
+          borderRadius: "5px",
+        }}
+        vertical
+      >
+        <>
+          <Flex align="center" gap="20px" onClick={() => action(item)}>
+            {
+              item?.avatar ? (
+                <Avatar
+                  src={item?.avatar.replace("D:\\DA4\\frontend\\", "")}
+                  size="large"
 
-                  />) : (
-                  <Avatar
-                    style={{ backgroundColor: '#87d068' }}
-                    size="large"
-                    icon={<UserOutlined />}
-                  />)
-              }
-              <Flex justify="center" align="start" vertical style={{ flex: 1 }}>
-                <Title level={5} style={{ margin: "0px" }}>{item.name}</Title>
-                <Text strong type="secondary">{item.message}</Text>
-              </Flex>
+                />) : (
+                <Avatar
+                  style={{ backgroundColor: '#87d068' }}
+                  size="large"
+                  icon={<UserOutlined />}
+                />)
+            }
+            <Flex justify="center" align="start" vertical style={{ flex: 1 }}>
+              <Title level={5} style={{ margin: "0px" }}>{item.name}</Title>
+              <Text strong type="secondary">{item.message}</Text>
             </Flex>
-          </>
-        </Flex>
-      </>,
-      key: `${index}`,
-    })),
-  ]
+          </Flex>
+        </>
+      </Flex>
+    </>,
+    key: `${index}`,
+  })),
+]
 
 
 export const userMenuItem: MenuProps["items"] = [
@@ -272,7 +273,7 @@ export const userMenuItem: MenuProps["items"] = [
         }}
         vertical
       >
-        <Link to="/login">
+        <Link to={URL.LOGIN}>
           <Text>Đăng xuất </Text>
         </Link>
       </Flex>

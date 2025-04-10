@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import ModalCreateGuest from "../Modal/ModalCreateGuest";
 import { search } from "../../../services/User/user.service";
 import { createGuestdAPI, deleteBoardAPI, deleteGuestAPI } from "../../../services/Board/board.sevice";
+import decodeJWT from "../../../services/Auth/auth.service ";
 
 const cx = classNames.bind(style);
 const { Title, Text } = Typography
@@ -22,8 +23,10 @@ const BoardBar = (props: any) => {
   const { board } = props;
   const [guest, setGuest] = useState(props.board?.guest);
   const [openModal, setOpenModal] = useState(false);
-  const userName = localStorage.getItem("user_name");
-  const userID = localStorage.getItem("user_id");
+  const userName = localStorage.getItem("name");
+  const token = localStorage.getItem('accessToken') as string;
+  const userInfo = decodeJWT(token);
+  const userID = userInfo.user_id;
 
   const { handleFillter, handleCreateConversation } = useOutletContext<{ handleFillter: any, handleCreateConversation: any }>();
   const [selectedValue, setSelectedValue] = useState<number | string | null>("");

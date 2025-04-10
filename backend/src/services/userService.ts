@@ -26,13 +26,14 @@ export class UserService {
     }
 
     async googleLogin(payload: any): Promise<any> {
-        const user = await this.userReponsitory.getUserByEmail(payload);
+        const user = await this.userReponsitory.getUserByEmail(payload.email);
+        console.log(user);
         if (user) {
             return {
-                user_id: user.user_id,
-                name: user.name,
-                email: user.email,
-                avatar: user.avatar
+                user_id: user[0].user_id,
+                name: user[0].name,
+                email: user[0].email,
+                avatar: user[0].avatar
             };
         }
     
@@ -52,7 +53,7 @@ export class UserService {
         };
     }
     
-    async search(user: UserModel): Promise<any> {
-        return this.userReponsitory.getUserByEmail(user);
+    async search(email: string): Promise<any> {
+        return this.userReponsitory.getUserByEmail(email);
     }
 }

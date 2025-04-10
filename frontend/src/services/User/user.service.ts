@@ -10,8 +10,8 @@ export const googleLogin = async (data: any): Promise<any> => {
     return res?.data;
 };
 
-export const refreshToken = async (data: any): Promise<any> => {
-    const res = await apiServer?.post(`/api/refreshtoken`, data);
+export const refreshToken = async (): Promise<any> => {
+    const res = await apiServer?.post(`/api/refreshtoken/`);
     return res?.data;
 };
 

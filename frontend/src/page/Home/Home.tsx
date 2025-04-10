@@ -10,7 +10,6 @@ import ModalCreateColumn from '../Work/compoent/Modal/ModalCreateBoard';
 
 const { Title } = Typography;
 
-
 const cx = classNames.bind(styles);
 
 const Home = () => {

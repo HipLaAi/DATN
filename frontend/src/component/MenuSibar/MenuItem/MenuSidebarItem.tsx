@@ -12,6 +12,7 @@ import {
   TableOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import { groupBy } from "lodash";
 
 
 type MenuItem = Required<MenuProps>['items'][number];
@@ -25,16 +26,37 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
     children: [
       {
         key: '13',
-        icon: <FaTrello size={18} />,
+        icon:
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '20px',
+              height: '40px',
+            }}
+          >
+            <FaTrello size={20} />
+          </div>,
         label:
           <>
             <Text strong>Bảng</Text>
           </>
       },
-
       {
         key: '14',
-        icon: <MdOutlineTableChart size={20} />,
+        icon:
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '22px',
+              height: '45px',
+            }}
+          >
+            <MdOutlineTableChart size={100} />
+          </div>,
         label:
           <>
             <Text strong>Trang chủ</Text>
@@ -43,13 +65,19 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
     ],
   },
   {
-    type: 'divider',
+    type: 'divider'
   },
   ...data.map((workspace, index) => ({
     key: `sub-${index}`,
-    label: (
+    icon:
       <>
-        <Flex justify="start" align="center" gap="10px">
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            marginTop: '10px'
+          }}
+        >
           <img
             src={workspace?.logo.replace("D:\\DA4\\frontend\\", "")}
             alt=""
@@ -60,8 +88,11 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
               borderRadius: '5px',
             }}
           />
-          <Text strong>{workspace.workspace_name}</Text>
-        </Flex>
+        </div>
+      </>,
+    label: (
+      <>
+        <Text strong>{workspace.workspace_name}</Text>
       </>
     ),
     children: [
@@ -85,11 +116,11 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
       },
       {
         key: `${index}-2`,
-        icon: <SettingOutlined size={14}/>,
+        icon: <SettingOutlined size={14} />,
         label: (
           <>
             <Link to={"workspace/" + workspace.workspace_id + "/setting"}>Cài đặt</Link>
-            </>
+          </>
         ),
       },
     ],

@@ -50,7 +50,6 @@ export class UserController {
 
             const payload = {
                 user_id: user.user_id,
-                name: user.name,
                 email: user.email,
             };
 
@@ -66,9 +65,8 @@ export class UserController {
 
             return res.json({
                 accessToken,
-                user_id: user.user_id,
                 name: user.name,
-                avatar: user.avatar,
+                avatar: user.avatar
             });
 
         } catch (error: any) {
@@ -97,7 +95,6 @@ export class UserController {
 
             const payload = {
                 user_id: user.user_id,
-                name: user.name,
                 email: user.email,
             };
 
@@ -112,8 +109,7 @@ export class UserController {
             });
 
             return res.json({
-                accessToken,
-                user_id: user.user_id,
+                accessToken: accessToken,
                 name: user.name,
                 avatar: user.avatar,
             });
@@ -135,7 +131,6 @@ export class UserController {
 
         const payload = {
             user_id: user.user_id,
-            name: user.name,
             email: user.email,
         };
 
@@ -149,7 +144,9 @@ export class UserController {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        return res.json({ accessToken: newAccessToken });
+        return res.json({
+            accessToken: newAccessToken
+        });
     }
 
     async search(req: Request, res: Response): Promise<any> {

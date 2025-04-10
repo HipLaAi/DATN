@@ -11,7 +11,7 @@ import TextPressure from "../component/Reactbits/TextPressure"
 import { Link, useNavigate } from "react-router-dom"
 import { URL } from "../utils/url"
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
-import { googleLogin } from "../services/User/user.service"
+import { googleLogin, login } from "../services/User/user.service"
 
 export function LoginForm({
   className,
@@ -20,10 +20,10 @@ export function LoginForm({
   const navigate = useNavigate();
   const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
     const result = await googleLogin({ token_id: credentialResponse.credential });
-    if(result){
-      localStorage.setItem("user_id",result.user_id)
-      localStorage.setItem("user_name",result.name)
-      localStorage.setItem("user_avatar",result.avatar)
+    if (result) {
+      localStorage.setItem("accessToken", result.accessToken);
+      localStorage.setItem("name", result.name);
+      localStorage.setItem("avatar", result.avatar);
       navigate(URL.HOME)
     }
   }
@@ -31,6 +31,22 @@ export function LoginForm({
   const handleGoogleLoginError = () => {
     console.error("Google login failed")
   }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const response = await login({ email: email, password: password });
+    if (response) {
+      localStorage.setItem("accessToken", response.accessToken)
+      localStorage.setItem("name", response.name);
+      localStorage.setItem("avatar", response.avatar.replace("D:\\DA4\\frontend\\", ""));
+      navigate(URL.HOME);
+    }
+  };
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -57,7 +73,7 @@ export function LoginForm({
           />
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
               <div className="flex flex-col items-center gap-2 w-full [&>div>div]:rounded-[12px] [&>div>div]:overflow-hidden">
                 <GoogleLogin
@@ -80,6 +96,7 @@ export function LoginForm({
                   <Input
                     id="email"
                     type="email"
+                    name="email"
                     placeholder="address@example.com"
                     required
                     className="rounded-xl"
@@ -95,7 +112,13 @@ export function LoginForm({
                       Quên mật khẩu?
                     </a>
                   </div>
-                  <Input id="password" type="password" required className="rounded-xl" placeholder="••••••••••••••••" />
+                  <Input
+                    id="password"
+                    type="password"
+                    name="password"
+                    required
+                    className="rounded-xl"
+                    placeholder="••••••••••••••••" />
                 </div>
                 <Button
                   type="submit"
