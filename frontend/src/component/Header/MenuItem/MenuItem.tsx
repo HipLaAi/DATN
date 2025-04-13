@@ -118,7 +118,89 @@ export const recentlyMenuItem: MenuProps["items"] = [
   },
 ]
 
-export const notificationMenuItem: MenuProps["items"] = [
+// export const notificationMenuItem: MenuProps["items"] = [
+//   {
+//     label:
+//       <>
+//         <Flex justify="space-between" align="center">
+//           <Title level={4} style={{ marginTop: "10px" }}>Thông Báo</Title>
+//           <IoMdMore />
+//         </Flex>
+//       </>,
+//     key: '0',
+//     disabled: true
+//   },
+//   {
+//     type: 'divider',
+//   },
+//   ...mockData.board.columns[0].cards.map((item: any, index: any) => ({
+//     key: `${index + 3}`, // Key bắt đầu từ 3 (bỏ qua 2 phần tử đầu)
+//     label: (
+//       <Flex
+//         style={{
+//           width: "360px",
+//           backgroundColor: "gray",
+//           borderRadius: "5px",
+//         }}
+//         vertical
+//       >
+//         <Flex
+//           vertical
+//           style={{
+//             backgroundColor: "pink",
+//             padding: "10px",
+//             borderTopLeftRadius: "5px",
+//             borderTopRightRadius: "5px",
+//           }}
+//           gap="5px"
+//         >
+//           <Link to="work" style={{ display: "block", width: "100%" }}>
+//             <Card
+//               style={{ width: "100%" }}
+//               bodyStyle={{
+//                 padding: "10px",
+//               }}
+//             >
+//               <Flex vertical justify="start" gap={10}>
+//                 {item.title}
+//                 <div
+//                   style={{
+//                     backgroundColor: "red",
+//                     width: "fit-content",
+//                     padding: "2px 5px",
+//                     borderRadius: "5px",
+//                   }}
+//                 >
+//                   {item.date}
+//                 </div>
+//               </Flex>
+//             </Card>
+//           </Link>
+//           <Flex
+//             align="center"
+//             justify="start"
+//             gap="5px"
+//             style={{ marginLeft: "8px" }}
+//           >
+//             <Text strong>{item.project}:</Text>
+//             <Text>{item.status}</Text>
+//           </Flex>
+//         </Flex>
+//         <Flex
+//           gap="5px"
+//           align="center"
+//           style={{ marginLeft: "20px", padding: "10px 0" }}
+//         >
+//           <Text strong>Nhắc nhở:</Text>
+//           <Text>{item.reminder}</Text>
+//         </Flex>
+//       </Flex>
+//     ),
+//   })),
+
+// ]
+
+export const notificationMenuItems = (data: any[]): MenuProps["items"] => [
   {
     label:
       <>
@@ -133,8 +215,8 @@ export const notificationMenuItem: MenuProps["items"] = [
   {
     type: 'divider',
   },
-  ...mockData.board.columns[0].cards.map((item: any, index: any) => ({
-    key: `${index + 3}`, // Key bắt đầu từ 3 (bỏ qua 2 phần tử đầu)
+  ...data.map((item: any, index: any) => ({
+    key: `${index + 3}`,
     label: (
       <Flex
         style={{
@@ -171,7 +253,7 @@ export const notificationMenuItem: MenuProps["items"] = [
                     borderRadius: "5px",
                   }}
                 >
-                  {item.date}
+                  {item.message}
                 </div>
               </Flex>
             </Card>
@@ -182,8 +264,8 @@ export const notificationMenuItem: MenuProps["items"] = [
             gap="5px"
             style={{ marginLeft: "8px" }}
           >
-            <Text strong>{item.project}:</Text>
-            <Text>{item.status}</Text>
+            <Text strong>{item.message}:</Text>
+            <Text>{item.message}</Text>
           </Flex>
         </Flex>
         <Flex
@@ -192,7 +274,7 @@ export const notificationMenuItem: MenuProps["items"] = [
           style={{ marginLeft: "20px", padding: "10px 0" }}
         >
           <Text strong>Nhắc nhở:</Text>
-          <Text>{item.reminder}</Text>
+          <Text>{item.cardId}</Text>
         </Flex>
       </Flex>
     ),
@@ -254,7 +336,6 @@ export const chatMenuItems = (data: any[], action: (converSation: any) => void):
     key: `${index}`,
   })),
 ]
-
 
 export const userMenuItem: MenuProps["items"] = [
   {

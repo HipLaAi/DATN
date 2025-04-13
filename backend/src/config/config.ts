@@ -21,5 +21,8 @@ export const config = {
     },
     google: {
         clientId: process.env.GG_CLIENT_ID!
+    },
+    client: {
+        origin: process.env.CLIENT_ORIGIN!
     }
 };

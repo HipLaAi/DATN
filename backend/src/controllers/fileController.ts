@@ -20,8 +20,6 @@ export class FileController {
 
         try {
             const files = req.files as Express.Multer.File[];
-            console.log(files);
-
             const filePaths = files.map(file => file.path);
             const user = (req as any).user;
             const results = await this.fileService.createFile({

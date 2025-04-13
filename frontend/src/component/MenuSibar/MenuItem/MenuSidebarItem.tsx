@@ -1,23 +1,21 @@
-import { Flex } from "antd"
 import type { MenuProps } from 'antd';
 import { Typography } from 'antd';
-import { FaTrello } from "react-icons/fa6";
-import { FaTableList } from "react-icons/fa6"
-import { MdOutlineTableView } from "react-icons/md";
 import { MdOutlineTableChart } from "react-icons/md";
 import { Link } from "react-router-dom";
 import { URL } from '../../../utils/url';
 import {
+  DatabaseFilled,
+  EyeFilled,
+  HomeFilled,
   SettingOutlined,
   TableOutlined,
   UserOutlined,
+  VideoCameraFilled,
+  WechatFilled,
 } from '@ant-design/icons';
-import { groupBy } from "lodash";
-
 
 type MenuItem = Required<MenuProps>['items'][number];
 const { Text } = Typography
-
 
 export const MenuSideBarItem = (data: any[]): MenuItem[] => [
   {
@@ -25,41 +23,58 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
     type: 'group',
     children: [
       {
-        key: '13',
+        key: '1',
         icon:
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '20px',
-              height: '40px',
-            }}
-          >
-            <FaTrello size={20} />
-          </div>,
+          <Link to={'/'}>
+            <HomeFilled style={{ fontSize: '18px' }} />
+          </Link>,
+        label:
+          <>
+            <Text strong>Trang chủ</Text>
+          </>
+      },
+      {
+        key: '2',
+        icon:
+          <Link to={'/'}>
+            <DatabaseFilled style={{ fontSize: '18px' }} />
+          </Link>,
         label:
           <>
             <Text strong>Bảng</Text>
           </>
       },
       {
-        key: '14',
+        key: '3',
         icon:
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '22px',
-              height: '45px',
-            }}
-          >
-            <MdOutlineTableChart size={100} />
-          </div>,
+          <Link to={'/'}>
+            <WechatFilled style={{ fontSize: '18px' }} />
+          </Link>,
         label:
           <>
-            <Text strong>Trang chủ</Text>
+            <Text strong>Tin nhắn</Text>
+          </>
+      },
+      {
+        key: '4',
+        icon:
+          <Link to={'/'}>
+            <EyeFilled style={{ fontSize: '18px' }} />
+          </Link>,
+        label:
+          <>
+            <Text strong>Theo dõi</Text>
+          </>
+      },
+      {
+        key: '5',
+        icon:
+          <Link to={'/'}>
+            <VideoCameraFilled style={{ fontSize: '18px' }} />
+          </Link>,
+        label:
+          <>
+            <Text strong>Video</Text>
           </>
       },
     ],
@@ -79,7 +94,7 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
           }}
         >
           <img
-            src={workspace?.logo.replace("D:\\DA4\\frontend\\", "")}
+            src={workspace?.logo.replace("D:\\Đồ Án Tốt Nghiệp\\Project\\frontend\\", "")}
             alt=""
             style={{
               width: '30px',

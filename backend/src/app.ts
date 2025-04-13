@@ -2,23 +2,20 @@ import 'reflect-metadata';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import router from './routes';
-import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
-
-dotenv.config({ path: '../.env' });
+import { config } from './config/config';
 
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: config.client.origin,
   credentials: true
 }));
-app.use(cookieParser());
 
+app.use(cookieParser());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-
 app.use('/api', router);
 
 //Router handle does not exist

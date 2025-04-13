@@ -1,20 +1,21 @@
 import styles from "./Header.module.scss";
 import classNames from "classnames/bind";
-import { Col, Row, Flex, Button, Input, Avatar, Badge } from "antd";
-import { BsGrid3X3Gap } from "react-icons/bs";
+import { Col, Row, Flex, Button, Input, Avatar } from "antd";
 import { BsTrello } from "react-icons/bs";
 import { IoSearchOutline } from "react-icons/io5";
 import { Link } from "react-router-dom";
 import MenuHeader from "../DropDow/Dropdow";
-import { notificationMenuItem, recentlyMenuItem, starMenuItem, userMenuItem, worksapcesMenuItem } from "./MenuItem/MenuItem";
-import { FaRegBell } from "react-icons/fa";
+import { userMenuItem } from "./MenuItem/MenuItem";
 import ModalHeader from "./ModalHeader/ModalHeader";
 import { useState } from "react";
 import Conversation from "../ConverStation/ConverStation";
+import Notification from "../Notification/Notification";
+import { SheetSide } from "../../components/side-form";
 
 const cx = classNames.bind(styles);
 
 const Header = (props: any) => {
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const avatar = localStorage.getItem("avatar");
   const name = localStorage.getItem("name");
@@ -33,14 +34,16 @@ const Header = (props: any) => {
 
   return (
     <>
+      {/* Modal tạo không gian làm việc */}
       <ModalHeader handleCancel={handleCancel} handleOk={handleOk} isOpenModal={isModalOpen} />
+      {/* Thanh công cụ */}
       <div className={cx('trello-header')}>
         <Row align="middle" justify="center" wrap={false}>
-          <Col span={2}>
-            <Flex align="center" justify="center" gap={15}>
-              <BsGrid3X3Gap size={18} />
+          {/* Logo */}
+          <Col span={6}>
+            <Flex align="center" style={{ marginLeft: "30px" }}>
               <Link to='/'>
-                <Flex align="center" gap={5}>
+                <Flex align="center" gap={10}>
                   <BsTrello size={18} style={{ transform: "rotate(90deg)", transformOrigin: "center" }} />
                   <h2 className={cx('trello-title')}>
                     Task
@@ -49,23 +52,22 @@ const Header = (props: any) => {
               </Link>
             </Flex>
           </Col>
+          {/* Tìm kiếm, lịch, tạo không gian làm việc */}
           <Col span={12}>
-            <Flex gap={5} align="center">
-              <MenuHeader title="Các không gian làm việc" items={worksapcesMenuItem} />
-              <MenuHeader title="Đánh dấu sao" items={starMenuItem} />
-              <MenuHeader title="Gần đây" items={recentlyMenuItem} />
+            <Flex align="center" justify="center" gap={10}>
+              <SheetSide side="bottom"></SheetSide>
+              <Input placeholder="Tìm kiếm" prefix={<IoSearchOutline size={15} />} style={{ maxWidth: "400px" }} />
               <Button type="primary" onClick={showModal}>Tạo mới không gian làm việc</Button>
             </Flex>
           </Col>
-          <Col span={10}>
+          {/* Thông báo, chat, thông tài tài khoản */}
+          <Col span={6}>
             <Flex align="center" justify="flex-end" gap={10} style={{ paddingRight: "10px" }}>
-              <Input placeholder="Tìm kiếm" prefix={<IoSearchOutline size={15} />} style={{ maxWidth: "200px" }} />
-              <MenuHeader Icon={
-                <Badge dot>
-                  <FaRegBell size={18} />
-                </Badge>} items={notificationMenuItem} />
-              <Conversation handleOPenChat={props.handleOPenChat} resetConverSation={props.resetConverSation}/>
-              <MenuHeader Icon={<Avatar shape="circle" size="small" src={avatar} title={name} />} items={userMenuItem} />
+              <Notification />
+              <Conversation handleOPenChat={props.handleOPenChat} resetConverSation={props.resetConverSation} />
+              <MenuHeader
+                Icon={<Avatar shape="circle" size="small" src={avatar} title={name} />}
+                items={userMenuItem} />
             </Flex>
           </Col>
         </Row>

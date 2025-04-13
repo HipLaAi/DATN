@@ -10,6 +10,7 @@ import { getBoardByCustomAPI } from '../../services/Board/board.sevice';
 import { createconverSationAPI } from '../../services/ConverSation/Conversation.sevice';
 import MenuSibar from '../../component/MenuSibar/MenuSibar';
 import decodeJWT from '../../services/Auth/auth.service ';
+import { SocketService } from '../../services/Socket/Socket.service';
 
 const cx = classNames.bind(styles);
 const { Title } = Typography;
@@ -25,6 +26,14 @@ const BoardLayout = () => {
   const [dataMember, setDataMember] = useState<any>([])
   const [workSpaceMember, setWorkSpaceMember] = useState<any[]>([])
   const [workSpaceGuest, setWorkSpaceGuest] = useState<any[]>([])
+
+  // Gửi id người dùng hiện tại về server
+  useEffect(() => {
+    const socket = SocketService.connect();
+    if (socket) {
+      socket.emit("activeUser", userInfo.user_id);
+    }
+  }, [userInfo]);
 
 
   // Hàm xử lý mở hộp thoại
@@ -74,9 +83,9 @@ const BoardLayout = () => {
   }
 
   useEffect(() => {
-    fetchGetMember(),
-      fetchWorkSapceMemberByUserID(),
-      fetchWorkSapceGuestByUserID()
+    fetchGetMember();
+    fetchWorkSapceMemberByUserID();
+    fetchWorkSapceGuestByUserID();
   }, [])
 
   const [boardFilter, setBoardFilter] = useState<any[]>([]);
