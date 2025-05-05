@@ -34,27 +34,62 @@ DO
 BEGIN
     INSERT INTO notification (user_id, card_id, message, notify_time) 
     SELECT 
-		SUBSTRING_INDEX(SUBSTRING_INDEX(c.user_id_join, ',', x.n), ',', -1) AS user_id,
+		user_list.user_id,
 		c.card_id,
 		CONCAT('Thẻ "', c.name, '" sẽ hết hạn vào ', DATE_FORMAT(c.end_date, '%Y-%m-%d %H:%i:%s')) AS message,
 		CASE 
-			WHEN timer IS NULL THEN end_date
-			ELSE timer
+			WHEN c.timer IS NULL THEN c.end_date
+			ELSE c.timer
 		END AS notify_time
 	FROM 
 		card c
 	JOIN 
-		(SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) x
-	ON 
-		CHAR_LENGTH(c.user_id_join) - CHAR_LENGTH(REPLACE(c.user_id_join, ',', '')) + 1 >= x.n
+		`column` col
+		ON col.column_id = c.column_id
+	JOIN (
+		SELECT DISTINCT c.card_id, user_id
+		FROM card c
+		LEFT JOIN (
+			SELECT 
+				c.card_id, 
+				TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(c.user_id_join, ',', n.n), ',', -1)) AS user_id
+			FROM card c
+			JOIN (
+				SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+			) n
+			ON CHAR_LENGTH(IFNULL(c.user_id_join, '')) - CHAR_LENGTH(REPLACE(IFNULL(c.user_id_join, ''), ',', '')) + 1 >= n.n
+		) card_users
+		ON c.card_id = card_users.card_id
+		WHERE card_users.user_id IS NOT NULL AND card_users.user_id != ''
+
+		UNION ALL
+
+		SELECT 
+			c.card_id, 
+			g.user_id
+		FROM card c
+		JOIN `column` col
+			ON col.column_id = c.column_id
+		JOIN guest g
+			ON g.board_id = col.board_id 
+			AND g.role = 'own'
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM card c_sub
+			WHERE c_sub.card_id = c.card_id 
+			  AND FIND_IN_SET(g.user_id, c_sub.user_id_join) > 0
+		)
+
+	) user_list
+	ON user_list.card_id = c.card_id
 	WHERE 
-		c.end_date > NOW() 
-		AND c.end_date <= NOW() + INTERVAL 1 DAY
+		c.end_date <= NOW() + INTERVAL 5 MINUTE
 		AND NOT EXISTS (
 			SELECT 1 
-			FROM notification n 
+			FROM notification n
 			WHERE n.card_id = c.card_id 
-			AND n.user_id = SUBSTRING_INDEX(SUBSTRING_INDEX(c.user_id_join, ',', x.n), ',', -1));
+			AND n.user_id = user_list.user_id
+		);
 END //
 DELIMITER ;
 -- /////////////////////////
@@ -80,6 +115,1221 @@ begin
 end $$
 -- /////////////////////////
 
-call GetNotificationByUserId(@msg,@err)
+-- sửa lại thủ tục lấy không gian làm việc theo ID
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetWorkspaceByID`(
+    IN p_workspace_id INT,
+    IN p_user_id INT,
+    OUT p_error_code INT,
+    OUT p_error_message VARCHAR(500)
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_code = RETURNED_SQLSTATE, p_error_message = MESSAGE_TEXT;
+    END;
 
-select * from notification;
+    SET p_error_code = 0;
+    SET p_error_message = '';
+
+    SELECT 
+        ws.workspace_id,
+        ws.name,
+        ws.logo,
+        ws.description,
+        ws.status,
+        m.role,
+        IF(
+            COUNT(DISTINCT g.board_id) = 0,
+            JSON_ARRAY(),
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'board_id', b.board_id,
+                    'name', b.name,
+                    'background', b.background,
+                    'status', b.status
+                )
+            )
+        ) AS board
+    FROM 
+        `WorkSpace` ws
+    LEFT JOIN 
+        `Member` m ON ws.workspace_id = m.workspace_id AND m.user_id = p_user_id
+    LEFT JOIN 
+        `Board` b ON b.workspace_id = ws.workspace_id
+    LEFT JOIN 
+        `Guest` g ON g.board_id = b.board_id AND g.user_id = p_user_id
+    WHERE 
+        (
+            ws.status = 'public'
+            OR 
+            (ws.status = 'private' AND m.user_id = p_user_id)
+        )
+        AND 
+        (
+            ws.status = 'public'
+            OR (
+                b.board_id IS NULL
+                OR (
+                    b.status = 'public'
+                    OR 
+                    (b.status = 'workspace' AND m.user_id = p_user_id)
+                    OR 
+                    (b.status = 'private' AND g.user_id = p_user_id)
+                )
+            )
+        )
+        AND ws.workspace_id = p_workspace_id
+    GROUP BY 
+        ws.workspace_id, m.role;
+END$$
+DELIMITER ;
+
+-- sửa lại bảng member
+ALTER TABLE `member`
+ADD `permission` longtext DEFAULT NULL;
+
+-- sửa lại bảng guest
+ALTER TABLE `guest`
+ADD `permission` longtext DEFAULT NULL;
+
+-- sửa lại thủ tục tạo bảng
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateBoard`(
+in p_workspace_id varchar(100),
+in p_name varchar(100),
+in p_description longtext,
+in p_background longtext,
+in p_status varchar(50),
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `board`(
+        workspace_id,
+        name,
+        description,
+        background,
+        status
+        )
+        value(
+		p_workspace_id,
+        p_name,
+        p_description,
+        p_background,
+        p_status
+        );
+        insert into `guest`(
+        board_id,
+        user_id,
+        role
+        )
+        value(
+        last_insert_id(),
+        p_user_id,
+        'own'
+        );
+        call GetBoardByID(last_insert_id(), p_user_id, @err, @msg);
+    commit;
+end$$
+DELIMITER ;
+
+-- setting workspace
+create table `settingworkspace`
+(
+`settingworkspace_id` int NOT NULL AUTO_INCREMENT,
+`workspace_id` int not null,
+`action` varchar(250),
+`permission` longtext,
+primary key(`settingworkspace_id`),
+foreign key (`workspace_id`) references `workspace`(`workspace_id`) on delete cascade on update cascade
+);
+
+-- thủ tục thêm setting cho workspace
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateSettingWorkspace`(
+in p_workspace_id int,
+in p_action varchar(250),
+in p_permission longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `settingworkspace`(
+        workspace_id,
+        action,
+        permission
+        )
+        value(
+        p_workspace_id,
+        p_action,
+        p_permission
+        );
+    commit;
+end$$
+DELIMITER;
+
+-- sửa lại thủ tục tạo không gian làm việc
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateWorkspace`(
+in p_name varchar(100),
+in p_description longtext,
+in p_status varchar(50),
+in p_logo longtext,
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+    declare p_workspace_id int;
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+        ROLLBACK;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `workspace`(
+        name,
+        description,
+        logo,
+        status
+        )
+        value(
+        p_name,
+        p_description,
+        p_logo,
+        p_status
+        );
+        set p_workspace_id = last_insert_id();
+        insert into `member`(
+        workspace_id,
+        user_id,
+        role
+        )
+        value(
+        p_workspace_id,
+        p_user_id,
+        'own'
+        );
+		call CreateSettingWorkspace(p_workspace_id,'createboard','{"public": "all member", "workspace": "all member", "private": "all member"}', @err, @msg);
+		call CreateSettingWorkspace(p_workspace_id,'deleteboard','{"public": "all member", "workspace": "all member", "private": "all member"}', @err, @msg);
+		call CreateSettingWorkspace(p_workspace_id,'invitemember','{"status": "all member"}', @err, @msg);
+        call GetWorkspaceByID(p_workspace_id, p_user_id, @err, @msg);
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục lấy setting của workspace
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetSettingWorkspaceByID`(
+in p_workspace_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;        
+        SELECT 
+        workspace_id,
+		JSON_ARRAYAGG(
+               JSON_OBJECT(
+					'settingworkspace_id', settingworkspace_id,
+                   'action', action,
+                   'permission', JSON_EXTRACT(permission, '$')
+               )
+       ) AS setting
+		FROM settingworkspace
+		WHERE workspace_id = p_workspace_id
+		GROUP BY workspace_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- thủ tục cập nhật setting không gian làm việc
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateSettingWorkspace`(
+in p_settingworkspace_id int,
+in p_workspace_id int,
+in p_action varchar(250),
+in p_permission longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		update `settingworkspace`
+		set
+		`action` = p_action,
+        `permission` = p_permission
+		where `settingworkspace_id` = p_settingworkspace_id and `workspace_id` = p_workspace_id;
+	commit;
+end$$
+DELIMITER ;
+
+
+-- /////////////////////////////////////////////////////////////////////////
+
+-- setting board
+create table `settingboard`
+(
+`settingboard_id` int NOT NULL AUTO_INCREMENT,
+`board_id` int not null,
+`action` varchar(250),
+`permission` longtext,
+primary key(`settingboard_id`),
+foreign key (`board_id`) references `board`(`board_id`) on delete cascade on update cascade
+);
+
+-- thủ tục thêm setting cho board
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateSettingBoard`(
+in p_board_id int,
+in p_action varchar(250),
+in p_permission longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `settingboard`(
+        board_id,
+        action,
+        permission
+        )
+        value(
+        p_board_id,
+        p_action,
+        p_permission
+        );
+    commit;
+end$$
+DELIMITER ;
+
+-- sửa lại thủ tục tạo bảng
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateBoard`(
+in p_workspace_id varchar(100),
+in p_name varchar(100),
+in p_description longtext,
+in p_background longtext,
+in p_status varchar(50),
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+    declare p_board_id int;
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `board`(
+        workspace_id,
+        name,
+        description,
+        background,
+        status
+        )
+        value(
+		p_workspace_id,
+        p_name,
+        p_description,
+        p_background,
+        p_status
+        );
+		set p_board_id = last_insert_id();
+        insert into `guest`(
+        board_id,
+        user_id,
+        role
+        )
+        value(
+        p_board_id,
+        p_user_id,
+        'own'
+        );
+		call CreateSettingBoard(p_board_id,'guest','all guest', @err, @msg);
+		call CreateSettingBoard(p_board_id,'create','all guest', @err, @msg);		
+        call CreateSettingBoard(p_board_id,'delete','all guest', @err, @msg);
+		call CreateSettingBoard(p_board_id,'comment','all guest', @err, @msg);		
+        call CreateSettingBoard(p_board_id,'move','all guest', @err, @msg);
+        call CreateLabelBoard(p_board_id,'','#4bce97', @err, @msg);
+		call CreateLabelBoard(p_board_id,'','#f5cd47', @err, @msg);
+        call CreateLabelBoard(p_board_id,'','#dfd8fd', @err, @msg);
+        call CreateLabelBoard(p_board_id,'','#6e5dc6', @err, @msg);
+        call CreateLabelBoard(p_board_id,'','#0055cc', @err, @msg);
+        call GetBoardByID(p_board_id, p_user_id, @err, @msg);
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục lấy setting của board
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetSettingBoardByID`(
+in p_board_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;        
+        SELECT *
+		FROM settingboard
+		WHERE board_id = p_board_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- thủ tục cập nhật setting board
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateSettingBoard`(
+in p_board_id int,
+in p_action varchar(250),
+in p_permission longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		update `settingboard`
+		set
+        `permission` = p_permission
+		where `action` = p_action and `board_id` = p_board_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- thủ tục cập nhật logo không gian làm việc
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateLogoWorkspace`(
+in p_workspace_id int,
+in p_logo longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare old_path longtext default null;
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		set old_path = (select logo from workspace where workspace_id = p_workspace_id);
+		update `workspace`
+		set
+		`logo` = p_logo
+		where `workspace_id` = p_workspace_id;
+        select old_path;
+	commit;
+end$$
+DELIMITER ;
+
+-- thủ tục cập nhật thông tin không gian làm việc
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateIWorkspace`(
+in p_workspace_id int,
+in p_name varchar(100),
+in p_description longtext,
+in p_status varchar(50),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		update `workspace`
+		set
+		`name` = p_name,
+		`description` = p_description,
+		`status` = p_status
+		where `workspace_id` = p_workspace_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- thủ tục cập nhật quyền của bảng thành viên không gian làm việc
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateRoleMember`(
+in p_workspace_id int,
+in p_user_id int,
+in p_role varchar(100),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		update `member`
+		set
+		`role` = p_role
+		where `workspace_id` = p_workspace_id and `user_id` = p_user_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- sửa thủ tục lấy khách trong không gian làm việc
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetGuestByWorkspaceID`(
+    in p_workspace_id int,
+    out p_error_code int,
+    out p_error_message varchar(500)
+)
+begin
+    declare exit handler for sqlexception
+    begin
+        get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+	select u.user_id, u.name, u.email, u.avatar, g.role,
+		JSON_ARRAYAGG(
+			   JSON_OBJECT(
+				   'board_id', b.board_id,
+				   'name', b.name,
+				   'background', b.background
+			   )
+	   ) AS board    
+    from board b 
+	right join guest g on g.board_id = b.board_id
+	left join user u on u.user_id = g.user_id
+	where workspace_id = p_workspace_id and g.user_id not in (select user_id from `member` where workspace_id = p_workspace_id)
+    group by u.user_id, u.name, u.email, u.avatar, g.role;
+    commit;
+end$$
+DELIMITER ;
+
+-- sửa thủ tục cập nhật thông tin bảng
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateIBoard`(
+in p_board_id int,
+in p_workspace_id int,
+in p_name varchar(100),
+in p_description longtext,
+in p_status varchar(50),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		update `board`
+		set
+        `workspace_id` = p_workspace_id,
+		`name` = p_name,
+		`description` = p_description,
+		`status` = p_status
+		where `board_id` = p_board_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- thủ tục cập nhật background bảng
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateBackgroundBoard`(
+in p_board_id int,
+in p_background longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare old_path longtext default null;
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		set old_path = (select background from board where board_id = p_board_id);
+		update `board`
+		set
+		`background` = p_background
+		where `board_id` = p_board_id;
+        select old_path;
+	commit;
+end$$
+DELIMITER ;
+
+-- label cho bảng
+create table `labelboard`
+(
+`labelboard_id` int NOT NULL AUTO_INCREMENT,
+`board_id` int not null,
+`name` varchar(250),
+`background` longtext,
+primary key(`labelboard_id`),
+foreign key (`board_id`) references `board`(`board_id`) on delete cascade on update cascade
+);
+
+-- sửa lại bảng label cho card
+CREATE TABLE `label` 
+(
+`label_id` int NOT NULL AUTO_INCREMENT,
+`labelboard_id` int NOT NULL,
+`card_id` int NOT NULL,
+primary key(`label_id`),
+foreign key (`labelboard_id`) references `labelboard`(`labelboard_id`) on delete cascade on update cascade,
+foreign key (`card_id`) references `card`(`card_id`) on delete cascade on update cascade
+);
+
+call GetBoardById(58, @err, @msg)
+
+-- sửa lại thủ tục lấy bảng theo ID
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetBoardById`(
+in p_board_id int,
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		SELECT 
+		b.board_id,
+        b.workspace_id,
+		b.name,
+		b.description,
+		b.background,
+        b.status,
+        g.role,
+        g.permission,
+		b.column_id_order,
+		(SELECT JSON_ARRAYAGG(
+			   JSON_OBJECT('column_id', sorted_columns.column_id, 
+							'name', sorted_columns.name, 
+                            'background', sorted_columns.background,
+                            'status', sorted_columns.status,
+							'card',
+									(SELECT JSON_ARRAYAGG(
+										   JSON_OBJECT('card_id', sorted_cards.card_id, 
+														'name', sorted_cards.name,
+                                                        'background', sorted_cards.background, 
+                                                        'status', sorted_cards.status,
+                                                        'userjoin',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'user_id', u.user_id, 
+																   'name', u.name,
+																   'email', u.email,
+																   'avatar', u.avatar
+																   )
+															) 
+														 FROM `user` u
+														 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = sorted_cards.card_id)) > 0
+                                                         ),
+                                                         'label',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'label_id', l.label_id, 
+																   'name', lb.name,
+																   'background', lb.background
+																   )
+															) 
+														 FROM `label` l
+                                                         JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
+														 WHERE l.card_id = sorted_cards.card_id
+                                                         )
+										   )
+									   ) 
+									FROM (
+										SELECT 
+											cd.card_id, 
+											cd.name,
+                                            cd.background,
+                                            cd.status,
+											FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) AS order_value
+										FROM `card` cd
+										RIGHT JOIN `column` cl ON cl.column_id = cd.column_id
+										WHERE FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) > 0
+										ORDER BY order_value
+										) AS sorted_cards
+									)
+			   )
+		   ) 
+		FROM (
+			SELECT 
+				cl.column_id, 
+				cl.name,
+                cl.background,
+                cl.status,
+				FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) AS order_value
+			FROM `column` cl
+			RIGHT JOIN `board` bd ON bd.board_id = cl.board_id
+			WHERE FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) > 0
+			ORDER BY order_value
+			) AS sorted_columns
+		) AS `column`,
+		(SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                   'user_id', g.user_id, 
+                   'name', u.name,
+                   'email', u.email,
+                   'avatar', u.avatar,
+                   'status', u.status,
+                   'role', g.role
+				   )
+			   ) 
+		 FROM `guest` g
+		 LEFT JOIN `user` u ON g.user_id = u.user_id
+		 WHERE g.board_id = b.board_id
+		) AS `guest`
+	FROM 
+		`board` b
+	LEFT JOIN 
+        `Member` m ON b.workspace_id = m.workspace_id AND m.user_id = p_user_id
+    LEFT JOIN 
+        `Guest` g ON g.board_id = b.board_id AND g.user_id = p_user_id
+	WHERE 
+        (
+			b.status = 'public'
+			OR 
+			(b.status = 'workspace' AND (m.user_id = p_user_id or g.user_id = p_user_id))
+			OR 
+			(b.status = 'private' AND g.user_id = p_user_id)
+        )
+        AND b.board_id = p_board_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- sửa lại thủ tục lấy thông tin card theo ID
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetCardByID`(
+    in p_card_id int,
+    out p_error_code int,
+    out p_error_message varchar(500)
+)
+begin
+    declare exit handler for sqlexception
+    begin
+        get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+
+    SELECT 
+		col.name as 'column_name',
+        cd.card_id, 
+        cd.column_id, 
+        cd.name, 
+        cd.description, 
+        cd.background, 
+        cd.user_id_join, 
+        cd.start_date, 
+        cd.end_date, 
+        cd.timer, 
+        cd.status,
+        (SELECT JSON_ARRAYAGG(
+			   JSON_OBJECT(
+				   'user_id', u.user_id, 
+				   'name', u.name,
+				   'email', u.email,
+				   'avatar', u.avatar
+				   )
+			) 
+		 FROM `user` u
+		 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = p_card_id)) > 0
+		 ) AS 'userjoin',
+        IF(
+            COUNT(cln.checklistname_id) = 0,
+            JSON_ARRAY(),
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'checklistname_id', cln.checklistname_id,
+                    'name', cln.name,
+                    'checklist', 
+                    IF(
+                        (SELECT COUNT(*) FROM `checklist` cl WHERE cl.checklistname_id = cln.checklistname_id) = 0,
+                        JSON_ARRAY(),
+                        (
+                            SELECT 
+                                JSON_ARRAYAGG(
+                                    JSON_OBJECT(
+                                        'checklist_id', cl.checklist_id,
+                                        'user_id', cl.user_id,
+                                        'name', cl.name,
+                                        'timer', cl.timer,
+                                        'status', cl.status
+                                    )
+                                )
+                            FROM `checklist` cl 
+                            WHERE cl.checklistname_id = cln.checklistname_id
+                        )
+                    )
+                )
+            )
+        ) AS `checklistname`,
+        IF(
+            COUNT(cm.comment_id) = 0,
+            JSON_ARRAY(),
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'comment_id', cm.comment_id,
+                    'user_id', cm.user_id,
+                    'comment', cm.comment,
+                    'status', cm.status
+                )
+            )
+        ) AS `comment`,
+        IF(
+            COUNT(f.file_id) = 0,
+            JSON_ARRAY(),
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+					'file_id', f.file_id,
+                    'user_id', f.user_id,
+                    'path', f.path
+                )
+            )
+        ) AS `file`,
+        IF(
+        COUNT(l.label_id) = 0,
+        JSON_ARRAY(),
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'label_id', l.label_id,
+                'labelboard_id', l.labelboard_id,
+                'name', lb.name,
+                'background', lb.background
+            )
+        )
+    ) AS `label`
+    FROM 
+        `card` cd
+    LEFT JOIN `checklistname` cln ON cd.card_id = cln.card_id
+    LEFT JOIN `comment` cm ON cd.card_id = cm.card_id
+    LEFT JOIN `file` f ON cd.card_id = f.card_id
+    LEFT JOIN `label` l ON cd.card_id = l.card_id
+	LEFT JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
+    LEFT JOIN `column` col on cd.column_id = col.column_id
+    WHERE 
+        cd.card_id = p_card_id
+    GROUP BY 
+		col.name,
+        cd.card_id, 
+        cd.column_id, 
+        cd.name, 
+        cd.description, 
+        cd.background, 
+        cd.user_id_join, 
+        cd.start_date, 
+        cd.end_date, 
+        cd.timer, 
+        cd.status;
+    commit;
+end$$
+DELIMITER ;
+
+
+
+
+
+
+
+
+
+
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetCardByID`(
+    in p_card_id int,
+    out p_error_code int,
+    out p_error_message varchar(500)
+)
+begin
+    declare exit handler for sqlexception
+    begin
+        get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+
+    SELECT 
+		col.name as 'column_name',
+        cd.card_id, 
+        cd.column_id, 
+        cd.name, 
+        cd.description, 
+        cd.background, 
+        cd.user_id_join, 
+        cd.start_date, 
+        cd.end_date, 
+        cd.timer, 
+        cd.status,
+        (SELECT JSON_ARRAYAGG(
+			   JSON_OBJECT(
+				   'user_id', u.user_id, 
+				   'name', u.name,
+				   'email', u.email,
+				   'avatar', u.avatar
+				   )
+			) 
+		 FROM `user` u
+		 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = p_card_id)) > 0
+		 ) AS 'userjoin',
+		IF(
+			COUNT(cln.checklistname_id) = 0,
+			JSON_ARRAY(),
+			JSON_ARRAYAGG(
+				JSON_OBJECT(
+					'checklistname_id', cln.checklistname_id,
+					'name', cln.name,
+					'checklist', 
+					COALESCE(
+						(
+							SELECT 
+								JSON_ARRAYAGG(
+									JSON_OBJECT(
+										'checklist_id', cl.checklist_id,
+										'user_id', cl.user_id,
+										'name', cl.name,
+										'timer', cl.timer,
+										'status', cl.status
+									)
+								)
+							FROM `checklist` cl 
+							WHERE cl.checklistname_id = cln.checklistname_id
+						), JSON_ARRAY()
+					)
+				)
+			)
+		) AS `checklistname`,
+        IF(
+            COUNT(cm.comment_id) = 0,
+            JSON_ARRAY(),
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'comment_id', cm.comment_id,
+                    'user_id', cm.user_id,
+                    'comment', cm.comment,
+                    'status', cm.status
+                )
+            )
+        ) AS `comment`,
+        IF(
+            COUNT(f.file_id) = 0,
+            JSON_ARRAY(),
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+					'file_id', f.file_id,
+                    'user_id', f.user_id,
+                    'path', f.path
+                )
+            )
+        ) AS `file`,
+        IF(
+        COUNT(l.label_id) = 0,
+        JSON_ARRAY(),
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'label_id', l.label_id,
+                'labelboard_id', l.labelboard_id,
+                'name', lb.name,
+                'background', lb.background
+            )
+        )
+    ) AS `label`
+    FROM 
+        `card` cd
+    LEFT JOIN `checklistname` cln ON cd.card_id = cln.card_id
+    LEFT JOIN `comment` cm ON cd.card_id = cm.card_id
+    LEFT JOIN `file` f ON cd.card_id = f.card_id
+    LEFT JOIN `label` l ON cd.card_id = l.card_id
+	LEFT JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
+    LEFT JOIN `column` col on cd.column_id = col.column_id
+    WHERE 
+        cd.card_id = p_card_id
+    GROUP BY 
+		col.name,
+        cd.card_id, 
+        cd.column_id, 
+        cd.name, 
+        cd.description, 
+        cd.background, 
+        cd.user_id_join, 
+        cd.start_date, 
+        cd.end_date, 
+        cd.timer, 
+        cd.status;
+    commit;
+end$$
+DELIMITER ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- thủ tục thêm lable board
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateLabelBoard`(
+in p_board_id int,
+in p_name varchar(250),
+in p_background longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `labelboard`(
+        board_id,
+        name,
+        background
+        )
+        value(
+        p_board_id,
+        p_name,
+        p_background
+        );
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục lấy label của board
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetLabelBoardByID`(
+in p_board_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;        
+        SELECT *
+		FROM labelboard
+		WHERE board_id = p_board_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- thủ tục cập nhật label board
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateLabelBoard`(
+in p_labelboard_id int,
+in p_board_id int,
+in p_name varchar(250),
+in p_background longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+        update `labelboard`
+		set
+		`name` = p_name,
+		`background` = p_background
+		where `labelboard_id` = p_labelboard_id and `board_id` = p_board_id;
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục xóa label board
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `DeleteLabelBoard`(
+in p_labelboard_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+        delete from `labelboard`
+		where `labelboard_id` = p_labelboard_id;
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục gán lable
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateLabel`(
+in p_labelboard_id int,
+in p_card_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `label`(
+        labelboard_id,
+        card_id
+        )
+        value(
+        p_labelboard_id,
+        p_card_id
+        );
+        select lb.name, lb.background, lb.labelboard_id, l.label_id from label l
+        join labelboard lb on l.labelboard_id = lb.labelboard_id
+        where l.label_id = last_insert_id();
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục xóa label
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `DeleteLabel`(
+in p_label_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+        delete from `label`
+		where `label_id` = p_label_id ;
+    commit;
+end$$
+DELIMITER ;
+
+-- sửa lại thủ tục update checklist
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateCheckList`(
+in p_checklist_id int,
+in p_user_id int,
+in p_name varchar(100),
+in p_timer datetime,
+in p_status varchar(50),
+in p_card_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		update `checklist`
+		set
+        `user_id` = p_user_id,
+		`name` = p_name,
+        `timer` = p_timer,
+        `status` = p_status
+		where `checklist_id` = p_checklist_id;
+        call GetCardByID(p_card_id, @err, @msg);
+	commit;
+end$$
+DELIMITER ;
+
+
+
+
+
+
+
+

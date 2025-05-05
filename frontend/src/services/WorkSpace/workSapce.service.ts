@@ -21,7 +21,7 @@ export const getWorkSpaceGuestByIdUserAPI = async (): Promise<any> => {
 };
 
 export const getWorkSpacedByIdAPI = async (id: any): Promise<any> => {
-    const res = await apiServer?.get(`/api/workspace/getbyid/`+id);
+    const res = await apiServer?.get(`/api/workspace/getbyid/` + id);
     return res?.data;
 };
 
@@ -29,6 +29,7 @@ export const createWorkSpacedAPI = async (data: any): Promise<any> => {
     const res = await apiServer?.post(`/api/workspace/create`, data);
     return res?.data;
 };
+
 export const createMemberdAPI = async (data: any): Promise<any> => {
     const res = await apiServer?.post(`/api/workspace/createmember`, data);
     return res?.data;
@@ -41,5 +42,20 @@ export const deleteWorkspaceAPI = async (id: any): Promise<any> => {
 
 export const deleteMemberAPI = async (id: any, data: any): Promise<any> => {
     const res = await apiServer?.post(`/api/workspace/deletemember/` + id, data);
+    return res?.data;
+};
+
+export const updateWorkSpacedAPI = async (id: any, data: any): Promise<any> => {
+    const res = await apiServer?.post(`/api/workspace/update/` + id, data);
+    return res?.data;
+};
+
+export const updateLogoWorkspaceAPI = async (id: any, data: any): Promise<any> => {
+    const res = await apiServer?.post(`/api/workspace/updatelogo/` + id, data);
+    return res?.data;
+};
+
+export const updateRoleMemberAPI = async (data: any): Promise<any> => {
+    const res = await apiServer?.post(`/api/workspace/updatemember`, data);
     return res?.data;
 };

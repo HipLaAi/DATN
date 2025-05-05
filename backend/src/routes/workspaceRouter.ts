@@ -16,9 +16,15 @@ workspaceRouter.post(
 );
 
 workspaceRouter.post(
-    '/update/:id', uploadMiddleware.Upload,
+    '/update/:id',
     authenticate,
-    workspaceController.updateWorkspace.bind(workspaceController)
+    workspaceController.updateIWorkspace.bind(workspaceController)
+);
+
+workspaceRouter.post(
+    '/updatelogo/:id', uploadMiddleware.Upload,
+    authenticate,
+    workspaceController.updateLogoWorkspace.bind(workspaceController)
 );
 
 workspaceRouter.get(
@@ -67,6 +73,12 @@ workspaceRouter.post(
     '/deletemember/:id',
     authenticate,
     workspaceController.deleteMember.bind(workspaceController)
+);
+
+workspaceRouter.post(
+    '/updatemember',
+    authenticate,
+    workspaceController.updateRoleMember.bind(workspaceController)
 );
 
 export default workspaceRouter;

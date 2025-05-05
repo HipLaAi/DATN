@@ -14,12 +14,16 @@ export class BoardService {
         return this.boardReponsitory.updateIBoard(board);
     }
 
+    async updateBackgroundBoard(board: BoardModel): Promise<any> {
+        return this.boardReponsitory.updateBackgroundBoard(board);
+    }
+
     async updateBoardWhenMoveColumn(board: BoardModel): Promise<any> {
         return this.boardReponsitory.updateBoardWhenMoveColumn(board);
     }
 
-    async getBoardById(id: string): Promise<any> {
-        return this.boardReponsitory.getBoardById(id);
+    async getBoardById(board: BoardModel): Promise<any> {
+        return this.boardReponsitory.getBoardById(board);
     }
 
     async deleteBoard(id: string): Promise<any> {

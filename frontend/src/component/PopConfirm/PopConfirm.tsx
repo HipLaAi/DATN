@@ -1,15 +1,16 @@
 import React, { useState, ReactNode } from 'react';
-import { Popconfirm, Popover } from 'antd';
+import { Popconfirm, Popover, PopoverProps } from 'antd';
 
 type CustomPopProps = {
   children: ReactNode;
   content?: ReactNode;
   title?: ReactNode;
   action?: boolean;
+  position?: PopoverProps['placement'];
   handleFunction?:()=>void
 };
 
-const CustomPop: React.FC<CustomPopProps> = ({ children, content, title, action = false, handleFunction }) => {
+const CustomPop: React.FC<CustomPopProps> = ({ children, content, title, action = false, handleFunction, position = 'top'}) => {
   const [open, setOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
@@ -52,6 +53,7 @@ const CustomPop: React.FC<CustomPopProps> = ({ children, content, title, action 
         title={title}
         content={content}
         trigger="click"
+        placement={position}
       >
         {/* Đảm bảo có phần tử để kích hoạt Popconfirm */}
         <div onClick={showPopconfirm}>

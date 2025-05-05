@@ -22,6 +22,12 @@ boardRouter.post(
 );
 
 boardRouter.post(
+    '/updatebackground/:id', uploadMiddleware.Upload,
+    authenticate,
+    boardController.updateBackgroundBoard.bind(boardController)
+);
+
+boardRouter.post(
     '/updatewhenmovecolumn',
     authenticate,
     boardController.updateBoardWhenMoveColumn.bind(boardController)

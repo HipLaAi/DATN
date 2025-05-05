@@ -24,7 +24,7 @@ export function LoginForm({
       localStorage.setItem("accessToken", result.accessToken);
       localStorage.setItem("name", result.name);
       localStorage.setItem("avatar", result.avatar);
-      navigate(URL.HOME)
+      navigate(URL.HOME.HOME)
     }
   }
 
@@ -44,7 +44,7 @@ export function LoginForm({
       localStorage.setItem("accessToken", response.accessToken)
       localStorage.setItem("name", response.name);
       localStorage.setItem("avatar", response.avatar.replace("D:\\DA4\\frontend\\", ""));
-      navigate(URL.HOME);
+      navigate(URL.HOME.HOME);
     }
   };
 
@@ -129,7 +129,7 @@ export function LoginForm({
               </div>
               <div className="text-center text-sm">
                 Bạn chưa có tài khoản?{" "}
-                <Link to={URL.REGISTER} className="underline underline-offset-4">
+                <Link to={URL.AUTH.REGISTER} className="underline underline-offset-4">
                   Đăng ký
                 </Link>
               </div>

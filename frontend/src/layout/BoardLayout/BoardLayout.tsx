@@ -1,31 +1,37 @@
-import { Link, Outlet, useNavigate, useParams } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import styles from "./BoardLayout.module.scss";
 import classNames from 'classnames/bind';
 import { useEffect, useState } from 'react';
 import { Layout, Menu, theme, Flex, Avatar, Typography, Button } from 'antd';
 import HeaderBoard from '../../component/Header/Header';
 import ChatApp from '../../component/Chat/Chat';
-import { getMemberByWorkspaceIdAPI, getWorkSpaceGuestByIdUserAPI, getWorkSpaceMemberByIdUserAPI } from '../../services/WorkSpace/workSapce.service';
+import { getWorkSpaceGuestByIdUserAPI, getWorkSpaceMemberByIdUserAPI } from '../../services/WorkSpace/workSapce.service';
 import { getBoardByCustomAPI } from '../../services/Board/board.sevice';
 import { createconverSationAPI } from '../../services/ConverSation/Conversation.sevice';
 import MenuSibar from '../../component/MenuSibar/MenuSibar';
 import decodeJWT from '../../services/Auth/auth.service ';
 import { SocketService } from '../../services/Socket/Socket.service';
+import ChatAI from '../../component/Chat/ChatAI/ChatAI';
+import { CloseOutlined, OpenAIOutlined } from '@ant-design/icons';
+import { useSelector } from 'react-redux';
 
 const cx = classNames.bind(styles);
 const { Title } = Typography;
 const { Sider, Content } = Layout;
 const BoardLayout = () => {
 
-  const { idWorkspace } = useParams();
+  const [isopenChatAI, setIsOpenChatAI] = useState(false)
   const [isopenChat, setIsOpenChat] = useState(false)
   const [converSation, setConverSation] = useState<any>()
   const navigate = useNavigate();
   const token = localStorage.getItem('accessToken') as string;
   const userInfo = decodeJWT(token);
-  const [dataMember, setDataMember] = useState<any>([])
   const [workSpaceMember, setWorkSpaceMember] = useState<any[]>([])
   const [workSpaceGuest, setWorkSpaceGuest] = useState<any[]>([])
+
+  const boardReload = useSelector(
+    (state: any) => state.reload.boardReload
+  );
 
   // Gửi id người dùng hiện tại về server
   useEffect(() => {
@@ -35,6 +41,10 @@ const BoardLayout = () => {
     }
   }, [userInfo]);
 
+  // Hàm xử lý mở hộp thoại chat AI
+  const handleOPenChatAI = () => {
+    setIsOpenChatAI((prev) => !prev)
+  }
 
   // Hàm xử lý mở hộp thoại
   const handleOPenChat = (converSation: any) => {
@@ -48,11 +58,6 @@ const BoardLayout = () => {
   } = theme.useToken();
 
 
-  // Hàm lấy danh sách thành viên có trong không gian làm việc
-  const fetchGetMember = async () => {
-    const response = await getMemberByWorkspaceIdAPI(idWorkspace);
-    setDataMember(response)
-  }
 
   // Hàm lấy không gian làm việc thành viên theo ID người dùng hiện tại
   const fetchWorkSapceMemberByUserID = async () => {
@@ -60,6 +65,9 @@ const BoardLayout = () => {
       const response = await getWorkSpaceMemberByIdUserAPI()
       if (!response.message) {
         setWorkSpaceMember(response)
+      }
+      else{
+        setWorkSpaceMember([])
       }
     } catch (error: any) {
       if (error.response?.status === 403) {
@@ -75,6 +83,9 @@ const BoardLayout = () => {
       if (!response.message) {
         setWorkSpaceGuest(response)
       }
+      else{
+        setWorkSpaceGuest([])
+      }
     } catch (error: any) {
       if (error.response?.status === 403) {
         navigate("/login")
@@ -83,10 +94,9 @@ const BoardLayout = () => {
   }
 
   useEffect(() => {
-    fetchGetMember();
     fetchWorkSapceMemberByUserID();
     fetchWorkSapceGuestByUserID();
-  }, [])
+  }, [boardReload])
 
   const [boardFilter, setBoardFilter] = useState<any[]>([]);
 
@@ -114,10 +124,36 @@ const BoardLayout = () => {
 
   return (
     <>
+      {/* Phần header và modal ChatUser */}
       <HeaderBoard handleOPenChat={handleOPenChat} resetConverSation={resetConverSation} />
       {
         isopenChat && <ChatApp converSation={converSation} setIsOpenChat={setIsOpenChat} />
       }
+
+      {/* Phần ChatAI */}
+      <Button
+        type="primary"
+        shape={"circle"}
+        size={"large"}
+        style={{
+          position: "fixed",
+          bottom: "20px",
+          right: "20px",
+          zIndex: "2"
+        }}
+        onClick={() => handleOPenChatAI()}
+        icon={
+          isopenChatAI ? (
+            <CloseOutlined style={{ fontSize: "24px" }} />
+          ) : (
+            <OpenAIOutlined style={{ fontSize: "24px" }} />
+          )
+        }
+      />
+      {
+        isopenChatAI && <ChatAI />
+      }
+
       <Layout className={cx('layout')}>
         <Sider
           style={{
@@ -140,7 +176,6 @@ const BoardLayout = () => {
             }}
           >
             <Outlet context={{
-              dataMember: dataMember,
               handleFillter: handleFillter,
               boardFilter: boardFilter,
               handleCreateConversation: handleCreateConversation,

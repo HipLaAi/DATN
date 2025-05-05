@@ -12,15 +12,14 @@ export class BoardController {
     constructor(private boardService: BoardService) { }
 
     async createBoard(req: Request, res: Response): Promise<any> {
-        const { error, value } = boardSchema.validate(req.body); //check value
+        const { error, value } = boardSchema.validate(req.body);
 
         if (error) {
             return res.status(422).json({ message: error.details[0].message });
         }
 
         try {
-            const files = req.files as Express.Multer.File[];
-            const filePaths = files.map(file => file.path);
+            const filePaths = await uploadMiddleware.UploadFiles(req);
             const user = (req as any).user;
 
             const results = await this.boardService.createBoard({
@@ -43,22 +42,46 @@ export class BoardController {
 
         try {
             const id = req.params.id;
-            const files = req.files as Express.Multer.File[];
-            const filePaths = files.map(file => file.path);
 
-            const oldFilePath = await this.boardService.updateIBoard({
+            const updateData = {
                 ...value,
                 board_id: id,
-                background: filePaths,
-            });
+            };
 
-            uploadMiddleware.Remove(oldFilePath.old_path);
+            await this.boardService.updateIBoard(updateData);
 
             return res.status(200).json({ message: 'Success', results: true });
         } catch (error: any) {
             res.status(500).json({ message: error.message, results: false });
         }
     }
+
+    async updateBackgroundBoard(req: Request, res: Response): Promise<any> {
+        const { error, value } = boardSchema.validate(req.body); //check value
+
+        if (error) {
+            return res.status(422).json({ message: error.details[0].message });
+        }
+
+        try {
+            const id = req.params.id;
+            const filePaths = await uploadMiddleware.UploadFiles(req);
+            const updateData = {
+                ...value,
+                board_id: id,
+                background: filePaths
+            };
+
+            const oldFilePath = await this.boardService.updateBackgroundBoard(updateData);
+
+            await uploadMiddleware.Remove(oldFilePath.old_path);
+
+            return res.status(200).json({ message: 'Success', results: true });
+        } catch (error: any) {
+            return res.status(500).json({ message: error.message });
+        }
+    }
+
 
     async updateBoardWhenMoveColumn(req: Request, res: Response): Promise<any> {
         const { error, value } = boardSchema.validate(req.body); //check value
@@ -78,12 +101,16 @@ export class BoardController {
 
     async getBoardById(req: Request, res: Response): Promise<any> {
         try {
-            const id = req.params.id;
-            const results = await this.boardService.getBoardById(id);
+            const id = parseInt(req.params.id);
+            const user = (req as any).user;
+            const results = await this.boardService.getBoardById({
+                board_id: id,
+                user_id: user.user_id,
+            });
             if (results) {
                 res.status(200).json(results);
             } else {
-                res.json({ message: 'Not exists' });
+                res.json([]);
             }
         } catch (error: any) {
             res.status(500).json({ message: error.message });
@@ -151,12 +178,11 @@ export class BoardController {
 
         try {
             const id = req.params.id;
-            const oldFilePath = await this.boardService.deleteGuest({
-                ... value,
+            await this.boardService.deleteGuest({
+                ...value,
                 board_id: id
             });
 
-            uploadMiddleware.Remove(oldFilePath.old_path);
             return res.status(200).json({ message: 'Success', success: true });
         } catch (error: any) {
             return res.status(500).json({ message: error.message, success: false });

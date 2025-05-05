@@ -1,17 +1,22 @@
 import classNames from "classnames/bind";
+import SymbolicTable from "../../../../component/SymbolicTable/SymbolicTable";
 import styles from "../../Work.module.scss";
 import { IoSearchOutline } from "react-icons/io5";
-import {  Button, Row, Col, Select, Flex, Input, Typography } from 'antd';
+import { Button, Row, Col, Select, Flex, Input, Typography } from 'antd';
 import { useOutletContext, useParams } from "react-router-dom";
 import { URL } from "../../../../utils/url";
-import SymbolicTable from "../../../../component/SymbolicTable/SymbolicTable";
+import { useEffect } from "react";
 
 
 const { Title, Text } = Typography;
 const cx = classNames.bind(styles);
 const TableWorkPage = () => {
-  const {idWorkspace} = useParams();
-  const {data, showModal} = useOutletContext<{data:any, showModal:any}>()
+  const { data, showModal, scrollToTop, idWorkspace } = useOutletContext<{ idWorkspace: any, data: any, showModal: any, scrollToTop: any }>()
+
+  useEffect(() => {
+    scrollToTop();
+  }, [])
+
   return (
     <div>
       <Row justify='center'>
@@ -20,7 +25,7 @@ const TableWorkPage = () => {
             style={{ margin: '0 0 30px' }}>
             Bảng
           </Title>
-          <Flex vertical gap={30}>
+          <Flex vertical>
             <Flex justify="space-between">
               <Flex gap={10}>
                 <Flex vertical>
@@ -28,7 +33,7 @@ const TableWorkPage = () => {
                   <Select
                     placeholder="Sắp sếp theo"
                     className={cx('select-tag')}
-                    style={{width: "230px"}}
+                    style={{ width: "230px" }}
                     options={[
                       { value: 'Hoạt động gần đây nhất', label: 'Hoạt động gần đây nhất' },
                       { value: 'Ít hoạt động nhất gần đây', label: 'Ít hoạt động nhất gần đây' },
@@ -40,7 +45,7 @@ const TableWorkPage = () => {
                 <Flex vertical>
                   <Text strong>Lọc theo</Text>
                   <Select
-                    style={{width: "150px"}}
+                    style={{ width: "150px" }}
                     placeholder="Lọc theo"
                     className={cx('select-tag')}
                     options={[
@@ -54,17 +59,16 @@ const TableWorkPage = () => {
                 <Input placeholder="Tìm kiếm" prefix={<IoSearchOutline size={15} />} />
               </Flex>
             </Flex>
-            <Flex align="center" gap="10px" wrap>
+            <div className={cx('middle-main')}>
+              <Button style={{ height: "100%" }} onClick={showModal}>Tạo bảng</Button>
               {
                 data?.board && data.board.length > 0
                   ? data.board.map((item: any, index: any) => (
-                    <SymbolicTable path={`/workspace/${idWorkspace}${URL.BOARD+ item.board_id}`} key={index} title={item.name} background={item?.background?.replace("D:\\DA4\\frontend\\", "")}/>
+                    <SymbolicTable key={item.board_id} path={URL.BOARD.BUILDER.LIST(idWorkspace, item.board_id)} title={item.name} background={item?.background?.replace("D:\\DA4\\frontend\\", "")} />
                   ))
                   : []
               }
-              <Button style={{ width: "23.5%", padding: "50px" }} onClick={showModal}>Tạo bảng</Button>
-            </Flex>
-            <Button type="text" className={cx('btn')}>Xem tất cả các bảng đã đóng</Button>
+            </div>
           </Flex>
         </Col>
       </Row>

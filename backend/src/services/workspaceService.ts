@@ -10,8 +10,12 @@ export class WorkspaceService {
         return this.workspaceReponsitory.createWorkspace(workspace);
     }
 
-    async updateWorkspace(workspace: WorkspaceModel): Promise<any> {
-        return this.workspaceReponsitory.updateWorkspace(workspace);
+    async updateLogoWorkspace(workspace: WorkspaceModel): Promise<any> {
+        return this.workspaceReponsitory.updateLogoWorkspace(workspace);
+    }
+
+    async updateIWorkspace(workspace: WorkspaceModel): Promise<any> {
+        return this.workspaceReponsitory.updateIWorkspace(workspace);
     }
 
     async getWorkspaceById(workspace: WorkspaceModel): Promise<any> {
@@ -44,5 +48,9 @@ export class WorkspaceService {
 
     async deleteMember(workspace: WorkspaceModel): Promise<any> {
         return this.workspaceReponsitory.deleteMember(workspace);
+    }
+
+    async updateRoleMember(workspace: WorkspaceModel): Promise<any> {
+        return this.workspaceReponsitory.updateRoleMember(workspace);
     }
 }

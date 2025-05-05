@@ -28,7 +28,7 @@ export class BoardReponsitory {
                 return results[0];
             }
 
-            return true;
+            return null;
         } catch (error: any) {
             throw new Error(error.message);
         }
@@ -36,14 +36,27 @@ export class BoardReponsitory {
 
     async updateIBoard(board: BoardModel): Promise<any> {
         try {
-            const sql = 'call UpdateIBoard(?, ?, ?, ?, ?, ?, @err_code, @err_msg)';
-            const [results] = await this.db.query(sql, [
+            const sql = 'call UpdateIBoard(?, ?, ?, ?, ?, @err_code, @err_msg)';
+            await this.db.query(sql, [
                 board.board_id,
                 board.workspace_id,
                 board.name,
                 board.description,
-                board.background,
                 board.status
+            ]);
+
+            return true;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
+
+    async updateBackgroundBoard(board: BoardModel): Promise<any> {
+        try {
+            const sql = 'call UpdateBackgroundBoard(?, ?, @err_code, @err_msg)';
+            const [results] = await this.db.query(sql, [
+                board.board_id,
+                board.background
             ]);
 
             if (Array.isArray(results) && results.length > 0) {
@@ -71,10 +84,13 @@ export class BoardReponsitory {
         }
     }
 
-    async getBoardById(id: string): Promise<any> {
+    async getBoardById(board: BoardModel): Promise<any> {
         try {
-            const sql = 'call GetBoardByID(?, @err_code, @err_msg)';
-            const [results] = await this.db.query(sql, [id]);
+            const sql = 'call GetBoardByID(?, ?, @err_code, @err_msg)';
+            const [results] = await this.db.query(sql, [
+                board.board_id,
+                board.user_id,
+            ]);
 
             if (Array.isArray(results) && results.length > 0) {
                 if (!results[0].description) {

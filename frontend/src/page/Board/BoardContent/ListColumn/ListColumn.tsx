@@ -30,7 +30,7 @@ const ListColumn: React.FC<Props> = ({ columns }) => {
     }
     createNewColumn(newColumnData);
     setTitle("");
-    inputRef.current?.focus(); 
+    inputRef.current?.focus();
   }
   return (
     <>
@@ -44,13 +44,15 @@ const ListColumn: React.FC<Props> = ({ columns }) => {
 
               {openNewColumnform
                 ? (<Flex
-                justify="center"
+                  justify="center"
                   vertical
                   gap="10px"
                   className={cx("column")}
                   style={{ height: "fit-content" }}>
-                  <Input placeholder="Nhập tên danh sách"
-                  ref={inputRef}
+                  <Input
+                    spellCheck={false}
+                    placeholder="Nhập tên danh sách"
+                    ref={inputRef}
                     variant="outlined"
                     data-no-dnd="true"
                     size="large"
@@ -58,6 +60,7 @@ const ListColumn: React.FC<Props> = ({ columns }) => {
                     required
                     style={{ width: "95%", marginTop: "5px" }}
                     value={title} onChange={(e) => setTitle(e.target.value)}
+                    onPressEnter={handleAddNewColumn}
                   />
                   <Flex gap="10px">
                     <Button type='primary' data-no-dnd="true" style={{ width: "40%" }} onClick={handleAddNewColumn}>Thêm danh sách</Button>

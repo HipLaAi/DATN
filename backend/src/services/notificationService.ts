@@ -9,6 +9,14 @@ cron.schedule('*/10 * * * * *', async () => {
     try {
         const rows = await notificationRepository.getNotification();
 
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return;
+        }
+
+        if (!Array.isArray(activeUser)) {
+            return;
+        }
+
         for (const notification of rows) {
             const user = activeUser.find((user) => user.userId === notification.user_id)
             if (user) {

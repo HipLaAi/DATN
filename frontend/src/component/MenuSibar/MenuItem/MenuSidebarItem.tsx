@@ -1,8 +1,6 @@
 import type { MenuProps } from 'antd';
 import { Typography } from 'antd';
-import { MdOutlineTableChart } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { URL } from '../../../utils/url';
 import {
   DatabaseFilled,
   EyeFilled,
@@ -13,6 +11,7 @@ import {
   VideoCameraFilled,
   WechatFilled,
 } from '@ant-design/icons';
+import { URL } from "../../../utils/url";
 
 type MenuItem = Required<MenuProps>['items'][number];
 const { Text } = Typography
@@ -25,7 +24,7 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
       {
         key: '1',
         icon:
-          <Link to={'/'}>
+          <Link to={URL.HOME.HOME}>
             <HomeFilled style={{ fontSize: '18px' }} />
           </Link>,
         label:
@@ -36,7 +35,7 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
       {
         key: '2',
         icon:
-          <Link to={'/'}>
+          <Link to={URL.HOME.BOARD}>
             <DatabaseFilled style={{ fontSize: '18px' }} />
           </Link>,
         label:
@@ -47,7 +46,7 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
       {
         key: '3',
         icon:
-          <Link to={'/'}>
+          <Link to={URL.HOME.MESSAGE}>
             <WechatFilled style={{ fontSize: '18px' }} />
           </Link>,
         label:
@@ -58,7 +57,7 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
       {
         key: '4',
         icon:
-          <Link to={'/'}>
+          <Link to={URL.HOME.FOLLOW}>
             <EyeFilled style={{ fontSize: '18px' }} />
           </Link>,
         label:
@@ -69,7 +68,7 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
       {
         key: '5',
         icon:
-          <Link to={'/'}>
+          <Link to={URL.HOME.VIDEO}>
             <VideoCameraFilled style={{ fontSize: '18px' }} />
           </Link>,
         label:
@@ -83,7 +82,7 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
     type: 'divider'
   },
   ...data.map((workspace, index) => ({
-    key: `sub-${index}`,
+    key: `${workspace.workspace_id}`,
     icon:
       <>
         <div
@@ -94,7 +93,7 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
           }}
         >
           <img
-            src={workspace?.logo.replace("D:\\Đồ Án Tốt Nghiệp\\Project\\frontend\\", "")}
+            src={workspace?.logo}
             alt=""
             style={{
               width: '30px',
@@ -112,29 +111,29 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
     ),
     children: [
       {
-        key: `${index}-1`,
+        key: `${workspace.workspace_id}-1`,
         icon: <TableOutlined size={18} />,
         label: (
           <>
-            <Link to={"workspace/" + workspace.workspace_id}>Bảng</Link>
+            <Link to={URL.WORKSPACE.BUILDER.TABLE(workspace.workspace_id)}>Bảng</Link>
           </>
         ),
       },
       {
-        key: `${index}-3`,
+        key: `${workspace?.workspace_id}-2`,
         icon: <UserOutlined size={14} />,
         label: (
           <>
-            <Link to={"workspace/" + workspace.workspace_id + "/member"}>Thành viên</Link>
+            <Link to={URL.WORKSPACE.BUILDER.MEMBER(workspace.workspace_id)}>Thành viên</Link>
           </>
         ),
       },
       {
-        key: `${index}-2`,
+        key: `${workspace?.workspace_id}-3`,
         icon: <SettingOutlined size={14} />,
         label: (
           <>
-            <Link to={"workspace/" + workspace.workspace_id + "/setting"}>Cài đặt</Link>
+            <Link to={URL.WORKSPACE.BUILDER.SETTING(workspace.workspace_id)}>Cài đặt</Link>
           </>
         ),
       },

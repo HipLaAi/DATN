@@ -1,7 +1,4 @@
 import { createBrowserRouter } from "react-router-dom";
-import HomeLayout from "../layout/HomeLayout/HomeLayout";
-import Board from "../page/Board";
-import Home from "../page/Home/Home";
 import BoardLayout from "../layout/BoardLayout/BoardLayout";
 import Work from "../page/Work/Work";
 import BoardDetials from "../page/Board/id";
@@ -12,97 +9,96 @@ import Register from "../page/Auth/Register/Register";
 import Table from "../page/Board/BoardContent/Table/Table";
 import { URL } from "../utils/url";
 import Schedule from "../page/Board/BoardContent/Calender/Calender";
-import TableWorkPage from "../page/Work/compoent/WorkPage/TableWorkPage";
-import { MemberWorkPage } from "../page/Work/compoent/WorkPage/MemberWorkPage";
-import SettingWorkPage from "../page/Work/compoent/WorkPage/SettingWorkPage";
+import TableWorkPage from "../page/Work/component/WorkPage/TableWorkPage";
+import { CollaboratorWorkPage } from "../page/Work/component/WorkPage/CollaboratorWorkPage";
+import SettingWorkPage from "../page/Work/component/WorkPage/SettingWorkPage";
 import DashBoard from "../page/Board/BoardContent/DashBoard/DashBoard";
-import Calendar from "../component/Calendar/Calendar";
-
-const events = [
-  {
-    id: 1,
-    title: "Meeting",
-    startTime: "2025-04-08T10:00:00",
-    endTime: "2025-04-08T12:00:00",
-    day: 2, // Tuesday
-  },
-  {
-    id: 2,
-    title: "Lunch",
-    startTime: "2025-04-08T13:00:00",
-    endTime: "2025-04-08T14:00:00",
-    day: 2, // Tuesday
-  },
-];
+import FuzzyText from "../component/Reactbits/FuzzyText";
+import Aurora from "../component/Reactbits/Aurora/Aurora";
+import Board from "../page/Home/Board/Board";
+import { Member } from "../page/Work/component/WorkPage/Collaborator/Member";
+import { Guest } from "../page/Work/component/WorkPage/Collaborator/Guest";
+import MindMap from "../page/Board/BoardContent/MindMap/MindMap";
+import Whiteboard from "../page/Board/BoardContent/WhiteBoard/WhiteBoard";
 
 const route = createBrowserRouter([
-  {
-    element: <HomeLayout />,
-    children: [
-      // {
-      //   path: "/",
-      //   element: <Home />
-      // },
-      {
-        path: "list-board",
-        element: <Board />
-      },
-      {
-        path: "test",
-        element: <Calendar events={events} />
-      },
-    ]
-  },
   {
     element: <BoardLayout />,
     children: [
       {
-        path: "/",
-        element: <Home />
+        path: URL.HOME.BOARD,
+        element: <Board />
       },
       {
-        path: "workspace/:idWorkspace",
+        path: URL.WORKSPACE.ROUTER.WORKSPACE,
         element: <Work />,
         children: [
           {
-            path: "",
+            path: URL.WORKSPACE.ROUTER.TABLE,
             element: <TableWorkPage />
           },
           {
-            path: "member",
-            element: <MemberWorkPage />
+            path: URL.WORKSPACE.ROUTER.COLLAB.COLLAB,
+            element: <CollaboratorWorkPage />,
+            children: [
+              {
+                path: URL.WORKSPACE.ROUTER.COLLAB.MEMBER,
+                element: <Member />
+              },
+              {
+                path: URL.WORKSPACE.ROUTER.COLLAB.GUEST,
+                element: <Guest />
+              },
+            ]
           },
           {
-            path: "guest",
-            element: <MemberWorkPage />
-          },
-          {
-            path: "setting",
+            path: URL.WORKSPACE.ROUTER.SETTING,
             element: <SettingWorkPage />
           }
         ]
       },
       {
-        path: "workspace/:idWorkspace" + URL.BOARD + ":id",
+        path: URL.BOARD.ROUTER.BOARD,
         element: <BoardDetials />,
         children: [
           {
-            path: "",
+            path: URL.BOARD.ROUTER.LIST,
             element: <BoardContent />,
           },
           {
-            path: "calender",
+            path: URL.BOARD.ROUTER.CALENDER,
             element: <Schedule />
           },
           {
-            path: "table",
+            path: URL.BOARD.ROUTER.TABLE,
             element: <Table />
           },
           {
-            path: "dashboard",
+            path: URL.BOARD.ROUTER.DASHBOARD,
             element: <DashBoard />
+          },
+          {
+            path: "mindmap",
+            element: <MindMap />
+          },
+          {
+            path: "whiteboard",
+            element: <Whiteboard />
           }
         ]
+      }
+    ]
+  },
+  {
+    element: <AuthLayout />,
+    children: [
+      {
+        path: URL.AUTH.LOGIN,
+        element: <Login />
+      },
+      {
+        path: URL.AUTH.REGISTER,
+        element: <Register />
       }
     ]
   },
@@ -110,23 +106,50 @@ const route = createBrowserRouter([
     path: "*",
     element:
       <>
-    
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            height: "100vh",
+            textAlign: "center",
+            gap: "1rem",
+          }}
+        >
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: -1
+          }}>
+            <Aurora colorStops={["#008DFF", "#7CFF67", "#008DFF"]} blend={0.5} amplitude={0.5} speed={1} />
+          </div>
+          <FuzzyText
+            fontSize={"clamp(2rem, 8vw, 10rem)"}
+            color={"black"}
+            baseIntensity={0.1}
+            hoverIntensity={0.2}
+            enableHover={true}
+          >
+            404
+          </FuzzyText>
+          <FuzzyText
+            fontSize={"clamp(1.5rem, 5vw, 6rem)"}
+            color={"black"}
+            baseIntensity={0.1}
+            hoverIntensity={0.2}
+            enableHover={true}
+          >
+            Not Found
+          </FuzzyText>
+        </div>
       </>
   },
-  {
-    element: <AuthLayout />,
-    children: [
-      {
-        path: "login",
-        // element: <Login />
-        element: <Login />
-      },
-      {
-        path: "register",
-        element: <Register />
-      }
-    ]
-  }
 ]);
 
 export default route;

@@ -8,6 +8,7 @@ export interface Card {
   comments: string[],
   attachments: string[]
   status: string,
-  userjoin?:any[]
+  userjoin?:any[],
+  label?:any[]
   FE_PlaceholderCard: boolean
 };

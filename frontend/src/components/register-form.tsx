@@ -110,7 +110,7 @@ export function RegisterForm({
 
                             <div className="text-center text-sm">
                                 Bạn đã có tài khoản?{" "}
-                                <Link to={URL.LOGIN} className="underline underline-offset-4">
+                                <Link to={URL.AUTH.LOGIN} className="underline underline-offset-4">
                                     Đăng nhập
                                 </Link>
                             </div>

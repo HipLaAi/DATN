@@ -6,4 +6,5 @@ export interface WorkspaceModel {
     logo?: string;
     
     user_id?: number;
+    role?: string
 }

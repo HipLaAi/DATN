@@ -7,7 +7,7 @@ import GlobalStyles from './component/GlobalStyles/GlobalStyles';
 import { HappyProvider } from '@ant-design/happy-work-theme';
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Provider } from "react-redux";
-import { store } from './store/userStore';
+import store from './store/store';
 
 const clientId = import.meta.env.VITE_GG_CLIENT_ID as string;
 

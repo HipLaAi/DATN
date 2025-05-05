@@ -11,6 +11,9 @@ import messageRouter from './messageRouter';
 import fileRouter from './fileRouter';
 import checkListRouter from './checkListRouter';
 import chatRouter from './chatRouter';
+import settingWorkspaceRouter from './settingWorkspaceRouter';
+import settingBoardRouter from './settingBoardRouter';
+import labelBoardRouter from './labelBoardRouter';
 
 const router = Router();
 router.use('', userRouter);
@@ -25,6 +28,12 @@ router.use('/file', fileRouter);
 router.use('/checklist', checkListRouter);
 
 router.use('/chat', chatRouter);
+
+router.use('/settingworkspace', settingWorkspaceRouter);
+
+router.use('/settingboard', settingBoardRouter);
+
+router.use('/labelboard', labelBoardRouter);
 
 
 export default router;

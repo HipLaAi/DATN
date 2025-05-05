@@ -62,7 +62,7 @@ const Column: React.FC<Props> = ({ column }) => {
       <div ref={setNodeRef}  {...attributes} style={style}>
         <div className={cx('column')} {...listeners}>
           <Flex justify='space-between' align='center' style={{ marginBottom: "5px" }}>
-            <Input value={column?.name} data-no-dnd="true" className={cx("column-title")} />
+            <Input value={column?.name} data-no-dnd="true" className={cx("column-title")} spellCheck={false}/>
             <CustomPop title="" content={
               <>
                 <Menu

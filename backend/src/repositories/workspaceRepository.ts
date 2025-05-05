@@ -27,14 +27,11 @@ export class WorkspaceReponsitory {
         }
     }
 
-    async updateWorkspace(workspace: WorkspaceModel): Promise<any> {
+    async updateLogoWorkspace(workspace: WorkspaceModel): Promise<any> {
         try {
-            const sql = 'call UpdateWorkspace(?, ?, ?, ?, ?, @err_code, @err_msg)';
+            const sql = 'call UpdateLogoWorkspace(?, ?, @err_code, @err_msg)';
             const [results] = await this.db.query(sql, [
                 workspace.workspace_id,
-                workspace.name,
-                workspace.description,
-                workspace.status,
                 workspace.logo
             ]);
 
@@ -43,6 +40,22 @@ export class WorkspaceReponsitory {
             }
 
             return null;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
+
+    async updateIWorkspace(workspace: WorkspaceModel): Promise<any> {
+        try {
+            const sql = 'call UpdateIWorkspace(?, ?, ?, ?, @err_code, @err_msg)';
+            await this.db.query(sql, [
+                workspace.workspace_id,
+                workspace.name,
+                workspace.description,
+                workspace.status,
+            ]);
+
+            return true;
         } catch (error: any) {
             throw new Error(error.message);
         }
@@ -147,24 +160,39 @@ export class WorkspaceReponsitory {
             if (Array.isArray(results) && results.length > 0) {
                 return results;
             }
-            
+
             return null;
         } catch (error: any) {
             throw new Error(error.message);
         }
     }
 
-     async deleteMember(workspace: WorkspaceModel): Promise<any> {
-            try {
-                const sql = 'call DeleteMember(?, ?, @err_code, @err_msg)';
-                await this.db.query(sql, [
-                    workspace.workspace_id,
-                    workspace.user_id
-                ]);
-    
-                return true;
-            } catch (error: any) {
-                throw new Error(error.message);
-            }
+    async deleteMember(workspace: WorkspaceModel): Promise<any> {
+        try {
+            const sql = 'call DeleteMember(?, ?, @err_code, @err_msg)';
+            await this.db.query(sql, [
+                workspace.workspace_id,
+                workspace.user_id
+            ]);
+
+            return true;
+        } catch (error: any) {
+            throw new Error(error.message);
         }
+    }
+
+    async updateRoleMember(workspace: WorkspaceModel): Promise<any> {
+        try {
+            const sql = 'call UpdateRoleMember(?, ?, ?, @err_code, @err_msg)';
+            await this.db.query(sql, [
+                workspace.workspace_id,
+                workspace.user_id,
+                workspace.role,
+            ]);
+
+            return true;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
 }

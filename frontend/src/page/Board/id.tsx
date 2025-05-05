@@ -12,12 +12,22 @@ import CardDialog from "../../component/CardDialog/CardDialog";
 import { generatePlaceholderCard } from "../../utils/format";
 import { isEmpty } from "lodash";
 import { ToastContainer } from "react-toastify";
+import { useSelector } from "react-redux";
+import { getSettingBoardAPI } from "../../services/Setting/settingBoard.service";
 
 const BoardDetials = () => {
-    const { boardFilter } = useOutletContext<{ boardFilter: any }>();
+  const { boardFilter, workSpaceMember } = useOutletContext<{ boardFilter: any, workSpaceMember: any }>();
   const { id } = useParams()
   const [board, setBoard] = useState<Board>()
   const [cardData, setCardData] = useState<Card>()
+  const [setting, setSetting] = useState<any>();
+  const [toggleModel, setToggleModal] = useState(false);
+  const [checkUpdateColumn, setCheckUpdateColumn] = useState(false);
+  const boardDetailReload = useSelector(
+    (state: any) => state.reload.boardDetailReload
+  );
+
+  // Call API lấy chi tiết bảng
   const fetchBoardDetailsAPI = async () => {
     const response: Board = await getBoarByIdAPI(id);
     response?.column?.forEach(column => {
@@ -108,40 +118,65 @@ const BoardDetials = () => {
   const deleteCard = async (cardId: string) => {
     console.log(cardId)
   }
-
-  const [toggleModel, setToggleModal] = useState(false);
-
-  const [checkUpdateColumn, setCheckUpdateColumn] = useState(false);
+  // setting board
+  const fetchSettingBoardById = async () => {
+    if (id) {
+      const results = await getSettingBoardAPI(id);
+      setSetting(results);
+    }
+  }
 
   useEffect(() => {
-    fetchBoardDetailsAPI()
-  }, [id, toggleModel, checkUpdateColumn])
-
+    fetchBoardDetailsAPI();
+    fetchSettingBoardById();
+  }, [id, toggleModel, checkUpdateColumn, boardDetailReload])
 
   const handleToggleModal = () => {
     setToggleModal(!toggleModel);
   };
-  
+
   const handleCreateGuest = async () => {
     const response = await createGuestdAPI({
       board_id: board?.board_id
     })
   }
 
-  console.log(board?.guest);
+  // Hàm xử lý cập nhật dữ liệu thay đổi
+  const handleDataBoardChange = (field: any, value: any) => {
+    setBoard((prev: any) => ({ ...prev, [field]: value }));
+  };
+  const handleSettingBoardChange = (action: any, value: any) => {
+    setSetting((prevData: any) =>
+      prevData?.map((item: any) =>
+        item.action === action
+          ? {
+            ...item,
+            permission: value,
+          }
+          : item
+      ),
+    );
+  };
 
   return (
     <>
       <ToastContainer />
       <CardDialog
-        board= {board}
+        board={board}
         isModalOpen={toggleModel}
         cardData={cardData}
         handleToggleModal={handleToggleModal}
       />
-      <BoardBar board={board} handleCreateGuest={handleCreateGuest} setCheckUpdateColumn={setCheckUpdateColumn}/>
+      <BoardBar
+        setting={setting}
+        board={board}
+        workSpaceMember={workSpaceMember}
+        handleDataBoardChange={handleDataBoardChange}
+        handleSettingBoardChange={handleSettingBoardChange}
+        setCheckUpdateColumn={setCheckUpdateColumn}
+      />
       <Row justify="center" style={{
-        backgroundImage: `url(${board?.background?.replace("D:\\DA4\\frontend\\", "").replaceAll("\\", "\\\\")})`,
+        backgroundImage: `url(${board?.background})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",

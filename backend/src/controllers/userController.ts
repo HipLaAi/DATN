@@ -150,8 +150,12 @@ export class UserController {
     }
 
     async search(req: Request, res: Response): Promise<any> {
+        // const { error, value } = userSchema.validate(req.body);
+        // if (error) {
+        //     return res.status(422).json({ message: error.details[0].message });
+        // }
         try {
-            const results = await this.userService.search(req.body);
+            const results = await this.userService.search(req.body.email);
             if (results) {
                 res.status(200).json(results);
             } else {

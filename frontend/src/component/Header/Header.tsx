@@ -11,6 +11,8 @@ import { useState } from "react";
 import Conversation from "../ConverStation/ConverStation";
 import Notification from "../Notification/Notification";
 import { SheetSide } from "../../components/side-form";
+import { CalendarOutlined } from "@ant-design/icons";
+import Calendar from "../Calendar/Calendar";
 
 const cx = classNames.bind(styles);
 
@@ -31,6 +33,23 @@ const Header = (props: any) => {
   const handleCancel = () => {
     setIsModalOpen(false);
   };
+
+  const events = [
+    {
+      id: 1,
+      title: "Meeting",
+      startTime: "2025-04-08T10:00:00",
+      endTime: "2025-04-08T12:00:00",
+      day: 2, // Tuesday
+    },
+    {
+      id: 2,
+      title: "Lunch",
+      startTime: "2025-04-08T13:00:00",
+      endTime: "2025-04-08T14:00:00",
+      day: 2, // Tuesday
+    },
+  ];
 
   return (
     <>
@@ -55,7 +74,22 @@ const Header = (props: any) => {
           {/* Tìm kiếm, lịch, tạo không gian làm việc */}
           <Col span={12}>
             <Flex align="center" justify="center" gap={10}>
-              <SheetSide side="bottom"></SheetSide>
+
+              <SheetSide
+                side="bottom"
+                // width={500}
+                // height="90vh"
+                triggerIcon={<CalendarOutlined size={20} />}
+                // triggerText="Quản lý thành viên"
+                // triggerProps={{ type: "default", size: "large" }}
+                // title="Quản lý thành viên"
+                // description="Thêm/xóa thành viên khỏi workspace"
+                // showFooter
+                contentClassName="bg-gray-50"
+              >
+                <Calendar events={events} />
+              </SheetSide>
+
               <Input placeholder="Tìm kiếm" prefix={<IoSearchOutline size={15} />} style={{ maxWidth: "400px" }} />
               <Button type="primary" onClick={showModal}>Tạo mới không gian làm việc</Button>
             </Flex>

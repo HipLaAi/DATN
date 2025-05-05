@@ -58,8 +58,6 @@ const BoardContent: React.FC = () => {
     else if (board?.column) {
       setSortedColumn(board?.column);
     }
-
-
   }, [board, boardFilter]);
 
   const dropAnimation: DropAnimation = {
@@ -264,7 +262,6 @@ const BoardContent: React.FC = () => {
         onDragEnd={handleDragEnd}
         sensors={sensor}
         collisionDetection={collisionDetectionStrategy}
-
       >
         <div className={cx('board-content')}>
           <ListColumn columns={sortedColumn} />

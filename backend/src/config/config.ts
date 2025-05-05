@@ -24,5 +24,10 @@ export const config = {
     },
     client: {
         origin: process.env.CLIENT_ORIGIN!
-    }
+    },
+    cloud: {
+        name: process.env.CLOUD_NAME!,
+        key: process.env.CLOUD_API_KEY!,
+        secret: process.env.CLOUD_API_SECRET!
+    },
 };

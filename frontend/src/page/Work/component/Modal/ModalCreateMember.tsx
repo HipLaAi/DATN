@@ -13,10 +13,10 @@ const ModalCreateMember = (props: any) => {
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const debouncedSearch = useDebounce(searchEmail, 500);
 
-  const fetchSearchUser = async () => {
+  const fetchSearchUser = async (debouncedSearch: any) => {
     setLoading(true);
     try {
-      const response = await search({ email: debouncedSearch });
+      const response = await search({email: debouncedSearch});
       setData(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error("API Error:", error);
@@ -28,7 +28,7 @@ const ModalCreateMember = (props: any) => {
 
   useEffect(() => {
     if (debouncedSearch.length > 2) {
-      fetchSearchUser();
+      fetchSearchUser(debouncedSearch);
     }
   }, [debouncedSearch]);
 
@@ -48,7 +48,7 @@ const ModalCreateMember = (props: any) => {
   const handleCreateMember = async()=> {
     const response = await createMemberdAPI({
       user_id:selectedUsers.map(item=>item.user_id).toString(),
-      workspace_id:props.id
+      workspace_id:props.idWorkspace
     })
     props.handleToggleModal()
   }

@@ -1,4 +1,4 @@
-import { Avatar, Button, Card as CardAntd, Flex, Input, Typography } from "antd";
+import { Avatar, Button, Card as CardAntd, Col, Flex, Input, Typography } from "antd";
 import { CommentOutlined, EditOutlined, EyeOutlined, FileTextOutlined, UserOutlined } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from '../../../../BoardContent.module.scss';
@@ -7,7 +7,8 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useOutletContext } from "react-router-dom";
 import CustomPop from "../../../../../../../component/PopConfirm/PopConfirm";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 
 const cx = classNames.bind(styles);
 
@@ -47,14 +48,22 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
     handleToggleModal()
     fetchCardById(cardId)
   }
+
   const handleEditCard = (e: any) => {
     e.stopPropagation()
     setToggleEditCard(!toggleEditCard)
   }
 
+  const cardDetailReload = useSelector(
+    (state: any) => state.reload.cardDetailReload
+  );
+
+  useEffect(() => {
+    fetchCardById(card.card_id)
+  }, [cardDetailReload])
+
   return (
     <>
-
       <CardAntd
         ref={setNodeRef} style={style} {...attributes} {...listeners}
         className={cx('list-card-item')}
@@ -107,14 +116,45 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
             </div>
           ) : <></>
         }
-        <Flex justify="end">
-          {
-            card?.userjoin?.map((item: any, key: any) => (
-              <Avatar src={item.avatar?.replace("D:\\DA4\\frontend\\", "")} key={key}>
-                <UserOutlined />
-              </Avatar>
-            ))
-          }
+        <Flex justify="end" vertical={true} gap={10}>
+          <Flex>
+            {
+              card?.userjoin?.map((item: any, key: any) => (
+                <Avatar src={item.avatar?.replace("D:\\DA4\\frontend\\", "")} key={key}>
+                  <UserOutlined />
+                </Avatar>
+              ))
+            }
+          </Flex>
+          <Flex gap={10}>
+            {
+              card?.label?.map((item: any, key: any) => (
+                <Button
+                  key={key}
+                  type="text"
+                  style={{
+                    backgroundColor: item?.background,
+                    width: "50px",
+                    height: "10px"
+                  }}
+                >
+                  {/* <span
+                    style={{
+                      display: "inline-block",
+                      maxWidth: "100%",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      fontWeight: "500",
+                      color: "#2a2a2a",
+                    }}
+                  >
+                    {item?.name}
+                  </span> */}
+                </Button>
+              ))
+            }
+          </Flex>
         </Flex>
       </CardAntd >
 

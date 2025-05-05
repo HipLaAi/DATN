@@ -19,12 +19,11 @@ export class WorkspaceController {
         }
 
         try {
-            const files = req.files as Express.Multer.File[];
-            const filePaths = files.map(file => file.path);
+            const filePaths = await uploadMiddleware.UploadFiles(req);
             const user = (req as any).user;
             const results = await this.workspaceService.createWorkspace({
                 ...value,
-                logo: filePaths,
+                logo: filePaths[0],
                 user_id: user.user_id,
             });
             return res.status(200).json(results);
@@ -34,7 +33,7 @@ export class WorkspaceController {
         }
     }
 
-    async updateWorkspace(req: Request, res: Response): Promise<any> {
+    async updateLogoWorkspace(req: Request, res: Response): Promise<any> {
         const { error, value } = workspaceSchema.validate(req.body); //check value
 
         if (error) {
@@ -43,20 +42,43 @@ export class WorkspaceController {
 
         try {
             const id = req.params.id;
-            const files = req.files as Express.Multer.File[];
-            const filePaths = files.map(file => file.path);
-
-            const oldFilePath = await this.workspaceService.updateWorkspace({
+            const filePaths = await uploadMiddleware.UploadFiles(req);
+            const updateData = {
                 ...value,
                 workspace_id: id,
-                logo: filePaths,
-            });
+                logo: filePaths
+            };
 
-            uploadMiddleware.Remove(oldFilePath.old_path);
+            const oldFilePath = await this.workspaceService.updateLogoWorkspace(updateData);
+
+            await uploadMiddleware.Remove(oldFilePath.old_path);
 
             return res.status(200).json({ message: 'Success', results: true });
         } catch (error: any) {
-            return res.status(500).json({ message: error.message, results: false });
+            return res.status(500).json({ message: error.message });
+        }
+    }
+
+    async updateIWorkspace(req: Request, res: Response): Promise<any> {
+        const { error, value } = workspaceSchema.validate(req.body); //check value
+
+        if (error) {
+            return res.status(422).json({ message: error.details[0].message });
+        }
+
+        try {
+            const id = req.params.id;
+
+            const updateData = {
+                ...value,
+                workspace_id: id,
+            };
+
+            await this.workspaceService.updateIWorkspace(updateData);
+
+            return res.status(200).json({ message: 'Success', results: true });
+        } catch (error: any) {
+            return res.status(500).json({ message: error.message });
         }
     }
 
@@ -82,7 +104,7 @@ export class WorkspaceController {
     async deleteWorkspace(req: Request, res: Response): Promise<any> {
         try {
             const id = req.params.id;
-            const oldFilePath  = await this.workspaceService.deleteWorkspace(id);
+            const oldFilePath = await this.workspaceService.deleteWorkspace(id);
             uploadMiddleware.Remove(oldFilePath.old_path);
             return res.status(200).json({ message: 'Success', success: true });
         } catch (error: any) {
@@ -161,23 +183,38 @@ export class WorkspaceController {
         }
     }
 
-     async deleteMember(req: Request, res: Response): Promise<any> {
-            const { error, value } = workspaceSchema.validate(req.body); //check value
-    
-            if (error) {
-                return res.status(422).json({ message: error.details[0].message });
-            }
-    
-            try {
-                const id = req.params.id;
-                await this.workspaceService.deleteMember({
-                    ... value,
-                    workspace_id: id
-                });
-    
-                return res.status(200).json({ message: 'Success', success: true });
-            } catch (error: any) {
-                return res.status(500).json({ message: error.message, success: false });
-            }
+    async deleteMember(req: Request, res: Response): Promise<any> {
+        const { error, value } = workspaceSchema.validate(req.body); //check value
+
+        if (error) {
+            return res.status(422).json({ message: error.details[0].message });
         }
+
+        try {
+            const id = req.params.id;
+            await this.workspaceService.deleteMember({
+                ...value,
+                workspace_id: id
+            });
+
+            return res.status(200).json({ message: 'Success', success: true });
+        } catch (error: any) {
+            return res.status(500).json({ message: error.message, success: false });
+        }
+    }
+
+    async updateRoleMember(req: Request, res: Response): Promise<any> {
+        const { error, value } = workspaceSchema.validate(req.body); //check value
+
+        if (error) {
+            return res.status(422).json({ message: error.details[0].message });
+        }
+
+        try {
+            await this.workspaceService.updateRoleMember(value);
+            return res.status(200).json({ message: 'Success', success: true });
+        } catch (error: any) {
+            res.status(500).json({ message: error.message, results: false });
+        }
+    }
 }
