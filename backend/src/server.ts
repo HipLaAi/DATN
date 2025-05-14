@@ -2,7 +2,8 @@ import app from './app';
 import { config } from './config/config';
 import { Server } from "socket.io";
 import http from "http";
-import "../src/services/notificationService"
+import "../src/schedulers/notificationScheduler";
+import chatGateway from "../src/gateways/messageGateway";
 
 //config socket.io
 const server = http.createServer(app);
@@ -23,12 +24,46 @@ interface ActiveUser {
 var activeUser: ActiveUser[] = [];
 
 io.on("connection", (socket) => {
+    chatGateway(socket);
     socket.on("activeUser", (userId) => {
         if (!activeUser.some((user) => user.userId === userId)) {
             activeUser.push({ userId, socketId: socket.id });
         }
     });
 
+
+
+
+    // Code call video
+
+    // Handle video call start
+    socket.on("start-video-call", (userId) => {
+        console.log(`${userId} is starting a video call`);
+
+        // Tìm tất cả các người tham gia
+        const targetUsers = activeUser.filter((user) => user.userId !== userId);
+
+        // Gửi thông báo mời gọi video đến tất cả người tham gia
+        targetUsers.forEach((user) => {
+            socket.to(user.socketId).emit("incoming-video-call", userId);
+        });
+    });
+
+    // Handle signaling (SDP và ICE candidates)
+    socket.on("signal", (data) => {
+        const { to, signal, from } = data;
+
+        // Tìm người dùng đích
+        const targetUser = activeUser.find((user) => user.userId === to);
+        if (targetUser) {
+            socket.to(targetUser.socketId).emit("signal", {
+                from,
+                signal,
+            });
+        }
+    });
+
+    /////
 
 
     socket.on("disconnect", () => {
@@ -43,19 +78,4 @@ server.listen(config.port, () => {
     console.log(`Server is running on port ${config.port}`);
 })
 
-export {io, activeUser};
-
-//     socket.on("send_message", (data) => {
-//         const { receive_id } = data;
-//         const user = activeUser.find((user) => user.userId === String(receive_id));
-//         if (user) {
-//             io.to(user.socketId).emit("receive_message", data);
-//         }
-//     });
-
-//     socket.on("disconnect", () => {
-//         activeUser = activeUser.filter((user) => user.socketId !== socket.id);
-//         // console.log("User disconnected:", socket.id, "Remaining users:", activeUser);
-//     });
-// });
-
+export { io, activeUser };

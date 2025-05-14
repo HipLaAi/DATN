@@ -24,7 +24,7 @@ export function LoginForm({
       localStorage.setItem("accessToken", result.accessToken);
       localStorage.setItem("name", result.name);
       localStorage.setItem("avatar", result.avatar);
-      navigate(URL.HOME.HOME)
+      navigate(URL.HOME.BOARD)
     }
   }
 

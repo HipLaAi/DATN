@@ -1,4 +1,4 @@
-import { Button, Col, Modal, Row, Typography, Input, Divider, Avatar, List, Checkbox, Flex, Menu, Upload, Space, Progress } from 'antd';
+import { Button, Col, Modal, Row, Typography, Input, Divider, Avatar, List, Checkbox, Flex, Menu, Upload, Space, Progress, Radio } from 'antd';
 import styles from './CardDialog.module.scss';
 import classNames from "classnames/bind";
 import { useEffect, useState } from 'react';
@@ -9,8 +9,14 @@ import {
     BookOutlined,
     CheckSquareOutlined,
     ClockCircleOutlined,
+    CloseOutlined,
     DeleteOutlined,
+    EditOutlined,
+    LikeOutlined,
     LinkOutlined,
+    MinusOutlined,
+    SaveOutlined,
+    SettingOutlined,
     TagsOutlined,
     UploadOutlined,
     UserAddOutlined,
@@ -26,6 +32,12 @@ import { useParams } from 'react-router-dom';
 import { createLabelAPI, deleteLabelAPI, getLabelBoardAPI } from '../../services/Label/LabelBoard.service';
 import { useSelector } from 'react-redux';
 import decodeJWT from '../../services/Auth/auth.service ';
+import { getSettingCardAPI, updateSettingCardAPI } from '../../services/Setting/settingCard.service';
+import React from 'react';
+import { values } from 'lodash';
+import { createCommentAPI, deleteCommentAPI, updateCommentAPI } from '../../services/Comment/comment.services';
+import dayjs from "dayjs";
+import { createActivityLogAPI, getActivityCardAPI } from '../../services/ActivityLog/ActivityLog.service';
 
 const cx = classNames.bind(styles);
 
@@ -48,6 +60,11 @@ const CardDialog = (props: any) => {
     const [userName, setUserName] = useState<any>(null);
     const [description, setDescription] = useState("");
     const [labelBoard, setLabelBoard] = useState<any>();
+    const [setting, setSetting] = useState<any>();
+    const [comment, setComment] = useState<any>();
+    const [activitylog, setActivityLog] = useState<any>();
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+    const [editedComment, setEditedComment] = useState<string>("");
     const filteredGuests = props?.board?.guest?.filter(
         (guest: any) => !data?.userjoin?.some((user: any) => user.user_id === guest.user_id)
     );
@@ -57,14 +74,15 @@ const CardDialog = (props: any) => {
     );
 
     useEffect(() => {
-        const avatar = localStorage.getItem("user_avatar");
-        const name = localStorage.getItem("user_name");
+        const avatar = localStorage.getItem("avatar");
+        const name = localStorage.getItem("name");
         if (avatar && name) {
             setUserAvatar(avatar);
             setUserName(name);
         }
     }, []);
 
+    // Hàm xử lý upload file
     const handleUploadChange = async (info: any) => {
         // Lấy danh sách file từ event
         const formData = new FormData()
@@ -84,10 +102,12 @@ const CardDialog = (props: any) => {
         setData(newData)
     };
 
+    // hàm cập nhật mô tả thẻ
     const handleDescriptionChange = (value: any) => {
         setDescription(value);
     };
 
+    // Hàm tạo tên mục danh sách công việc
     const handleCreateCheckListName = async () => {
         const response = await createCheckListNameAPI({
             name: checkListName,
@@ -98,8 +118,10 @@ const CardDialog = (props: any) => {
         newData.checklistname.push(response)
         setCheckListName("")
         setData(newData)
+        handelCreateActivity("đã thêm danh sách công việc " + checkListName + " vào thẻ này")
     }
 
+    //Hàm tạo danh sách công việc
     const handleCreateCheckList = async (idCheckListName: any) => {
         const response = await createCheckListAPI({
             checklistname_id: idCheckListName,
@@ -111,24 +133,30 @@ const CardDialog = (props: any) => {
         setData(newData)
     }
 
-    const handleDeleteCheckListName = (id: string) => {
+    //Hàm xóa tên mục danh sách công việc
+    const handleDeleteCheckListName = async (id: string) => {
         const newData = { ...data }
+        const checklistToDelete = data.checklistname.find((item: any) => item.checklistname_id === id);
+        handelCreateActivity(`đã xóa danh sách công việc "${checklistToDelete.name}" của thẻ này`);
         newData.checklistname = newData.checklistname.filter((c: any) => c.checklistname_id != id)
         setData(newData)
-        deleteCheckListNameAPI(id)
+        await deleteCheckListNameAPI(id)
     }
 
-    const handleDeleteCheckList = (idCheckList: string, idCheckListName: string) => {
+    //Hàm xóa công việc trong danh sách công việc
+    const handleDeleteCheckList = async (idCheckList: string, idCheckListName: string) => {
         const newData = { ...data }
         const checkListNameIndex = newData.checklistname.findIndex((c: any) => c.checklistname_id == idCheckListName)
         newData.checklistname[checkListNameIndex].checklist = newData.checklistname[checkListNameIndex].checklist.filter((i: any) => i.checklist_id != idCheckList)
         setData(newData)
 
-        deleteCheckListAPI(idCheckList)
+        await deleteCheckListAPI(idCheckList)
     }
 
+    //Hàm người dùng tham gia thẻ
     const handleUseJoinCard = async (user_id: any) => {
         handleToast("Thành công tham gia vào thẻ!", user_id)
+        handelCreateActivity("đã tham gia thẻ này");
         const respone = await updateUserJoinCardAPI(data.card_id, {
             user_id: user_id,
         })
@@ -140,8 +168,10 @@ const CardDialog = (props: any) => {
         setData(newData)
     }
 
+    //Hàm người dùng rời khỏi thẻ
     const handleUseOutCard = async (user_id: any) => {
         handleToast("Rời khỏi thẻ thành công!", user_id)
+        handelCreateActivity("đã rời khỏi thẻ này");
         const respone = await updateUserOutCardAPI(data.card_id, {
             user_id: user_id,
         })
@@ -150,6 +180,7 @@ const CardDialog = (props: any) => {
         setData(newData)
     }
 
+    //Hàm cập nhật thông tin (mô tả) thẻ
     const handleUpdateInformationCard = async () => {
         await updateInformationCard(data.card_id, {
             name: data.name,
@@ -158,6 +189,7 @@ const CardDialog = (props: any) => {
         handleToast("Cập nhật thông tin thành công", data.card_id)
     }
 
+    //hàm thông báo modal
     const handleToast = (message: any, id: any) => {
         toast.success(message, {
             toastId: message + id,
@@ -171,12 +203,14 @@ const CardDialog = (props: any) => {
         });
     }
 
+    //Hàm Xóa thẻ
     const handleDelete = async () => {
         await deleteCardByIdAPI(data.card_id);
         handleToast("Xóa thẻ thành công!", data.card_id)
         props.handleToggleModal();
     }
 
+    // Hàm cập nhật trạng thái công việc 
     const handleUpdateCheckList = async (id: any, user_id: any, name: any, timer: any, status: any) => {
 
         const data = {
@@ -190,6 +224,7 @@ const CardDialog = (props: any) => {
         const reponse = await updateCheckListAPI(id, data);
         setData(reponse);
         handleToast("Cập nhật danh sách công việc thành công", id + user_id + status + name)
+        handelCreateActivity(`đã cập nhật trạng thái công việc "${name}" của thẻ này`);
     }
 
     const handleDeleteFile = async (id: any) => {
@@ -199,20 +234,59 @@ const CardDialog = (props: any) => {
         setData(newData)
     }
 
+    const handleCreateComment = async () => {
+        const response = await createCommentAPI({
+            card_id: cardData?.card_id,
+            user_id: userId,
+            comment: comment
+        });
+
+        const newData = { ...data };
+
+        if (!Array.isArray(newData.comment)) {
+            newData.comment = [];
+        }
+
+        newData.comment.unshift(response[0]);
+
+        setData(newData);
+        setComment("");
+    };
+
+    const handleDeleteComment = async (id: any) => {
+        await deleteCommentAPI(id);
+        const newData = { ...data }
+        newData.comment = newData.comment.filter((comment: any) => comment.comment_id != id)
+        setData(newData)
+    }
+
     useEffect(() => {
         setDescription(props.cardData?.description);
     }, [props.cardData?.description])
 
     useEffect(() => {
         if (cardData) {
-            setData(cardData)
+            setComment("");
+            setData(cardData);
             fetchLabelBoard();
+            fetchSettingCard(cardData?.card_id);
+            fetchActivityLogCard(cardData?.card_id);
         }
     }, [cardData?.card_id, cardDetailReload])
 
     if (!cardData) {
         return
     }
+
+    // Hàm gọi danh sách các label có trong bảng
+    const fetchSettingCard = async (cardID: any) => {
+        try {
+            const results = await getSettingCardAPI(cardID);
+            setSetting(results);
+        } catch (error) {
+            console.error("Error fetching settings:", error);
+        }
+    };
 
     // Hàm gọi danh sách các label có trong bảng
     const fetchLabelBoard = async () => {
@@ -250,7 +324,87 @@ const CardDialog = (props: any) => {
         }
     }
 
+    // Hàm cập nhật cài đặt thẻ trong dataset
+    const handleSettingCardChange = (action: any, value: any) => {
+        setSetting((prevData: any) =>
+            prevData?.map((item: any) =>
+                item.action === action
+                    ? {
+                        ...item,
+                        permission: value,
+                    }
+                    : item
+            ),
+        );
+    };
 
+    // Hàm call API cập nhật cài đặt
+    const updateSetting = async (key: string, value: string) => {
+        if (cardData?.card_id) {
+            const newData = {
+                action: key,
+                permission: value
+            };
+            handleSettingCardChange(key, value);
+            await updateSettingCardAPI(cardData?.card_id, newData);
+        }
+    };
+
+    // Hàm hiển thị chỉnh sửa comment
+    const handleEdit = (id: string, content: string) => {
+        setEditingCommentId(id);
+        setEditedComment(content);
+    };
+
+    // hàm cập nhật comment
+    const handleSave = async (id: string) => {
+        await updateCommentAPI(id, {
+            comment: editedComment
+        })
+        const newData = { ...data };
+
+        newData.comment = newData.comment.map((item: any) => {
+            if (item.comment_id === id) {
+                return { ...item, comment: editedComment };
+            }
+            return item;
+        });
+
+        setData(newData);
+        setEditingCommentId(null);
+    };
+
+    //hàm hủy cập nhật comment
+    const handleCancel = () => {
+        setEditingCommentId(null);
+        setEditedComment("");
+    };
+
+    // Hàm gọi các hoạt động có trong thẻ
+    const fetchActivityLogCard = async (cardID: any) => {
+        try {
+            const results = await getActivityCardAPI(cardID);
+            setActivityLog(results);
+        } catch (error) {
+            console.error("Error fetching settings:", error);
+        }
+    };
+
+    // Hàm ghi hoạt động
+    const handelCreateActivity = async (description: any) => {
+        try {
+            const response = await createActivityLogAPI({
+                user_id: userId,
+                card_id: cardData?.card_id,
+                description: description
+            })
+            const newData = [response[0], ...activitylog];
+
+            setActivityLog(newData)
+        } catch (error) {
+            console.error('Create failed:', error);
+        }
+    }
 
     return (
         <>
@@ -269,29 +423,32 @@ const CardDialog = (props: any) => {
                                     ))
                                 }
                             </Flex>
-                            <Flex gap={10}>
+                            <Flex
+                                gap={10}
+                                wrap="wrap"
+                                style={{
+                                    width: "100%",
+                                    alignItems: "flex-start"
+                                }}
+                            >
                                 {
                                     data?.label?.map((item: any) => (
-                                        <>
-                                            <Button type='text' style={{ backgroundColor: item?.background, width: "100%" }}>
-                                                <span
-                                                    style={{
-                                                        display: "inline-block",
-                                                        maxWidth: "100%",
-                                                        whiteSpace: "nowrap",
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        fontWeight: "500",
-                                                        color: "#2a2a2a"
-                                                    }}
-                                                >
-                                                    {item?.name}
-                                                </span>
-                                            </Button>
-                                        </>
+                                        <Button
+                                            key={item.id}
+                                            type='text'
+                                            style={{
+                                                backgroundColor: item?.background,
+                                                wordWrap: "break-word",
+                                                fontWeight: "500",
+                                                color: "#2a2a2a",
+                                            }}
+                                        >
+                                            {item?.name}
+                                        </Button>
                                     ))
                                 }
                             </Flex>
+
                         </Flex>
                     </Col>
                 </Row>
@@ -538,21 +695,114 @@ const CardDialog = (props: any) => {
                         {/* Hoạt động */}
                         <div>
                             <Title level={5}>Hoạt động</Title>
-                            <Input placeholder="Viết bình luận..." prefix={<Avatar src={userAvatar} />} />
+                            <Input
+                                spellCheck={false}
+                                value={comment}
+                                placeholder="Viết bình luận..."
+                                prefix={<Avatar src={userAvatar} />}
+                                onChange={(e) => setComment(e.target.value)}
+                                onPressEnter={handleCreateComment}
+                            />
                             {
                                 data.comment?.length > 0 && (
                                     <>
                                         <List
-                                            itemLayout="horizontal"
                                             dataSource={data.comment}
                                             renderItem={(item: any) => (
-                                                <List.Item>
+                                                <List.Item style={{ paddingLeft: "10px" }}>
                                                     <List.Item.Meta
-                                                        avatar={<Avatar src={userAvatar} />}
+                                                        avatar={<Avatar src={item?.user_avatar} />}
                                                         title={
-                                                            <Text>
-                                                                <strong>{userName}</strong>
-                                                            </Text>
+                                                            <div>
+                                                                <Typography.Text strong>{item?.user_name}</Typography.Text>
+                                                                <Typography.Text style={{ marginLeft: 8, fontSize: '12px', color: '#888' }}>
+                                                                    {item?.timestamp ? dayjs(item.timestamp).format('DD/MM/YYYY HH:mm') : ''}
+                                                                </Typography.Text>
+                                                            </div>
+                                                        }
+                                                        description={
+                                                            <div>
+                                                                {editingCommentId === item.comment_id ? (
+                                                                    <Space direction="vertical" style={{ width: "100%" }}>
+                                                                        <Input
+                                                                            spellCheck={false}
+                                                                            value={editedComment}
+                                                                            onChange={(e) => setEditedComment(e.target.value)}
+                                                                            onPressEnter={() => handleSave(item.comment_id)}
+                                                                        />
+                                                                        <Flex gap={10}>
+                                                                            <Button
+                                                                                type="primary"
+                                                                                icon={<SaveOutlined />}
+                                                                                size="small"
+                                                                                onClick={() => handleSave(item.comment_id)}
+                                                                            >
+                                                                                Lưu
+                                                                            </Button>
+                                                                            <Button
+                                                                                type="default"
+                                                                                icon={<CloseOutlined />}
+                                                                                size="small"
+                                                                                onClick={handleCancel}
+                                                                            >
+                                                                                Hủy
+                                                                            </Button>
+                                                                        </Flex>
+                                                                    </Space>
+                                                                ) : (
+                                                                    <div>
+                                                                        <Typography.Text>{item.comment}</Typography.Text>
+                                                                        <Flex style={{ marginTop: 10 }} gap={10}>
+                                                                            <Button
+                                                                                type="text"
+                                                                                icon={<EditOutlined />}
+                                                                                size="small"
+                                                                                onClick={() => handleEdit(item.comment_id, item.comment)}
+                                                                            >
+                                                                                Chỉnh sửa
+                                                                            </Button>
+                                                                            <Button
+                                                                                type="text"
+                                                                                icon={<DeleteOutlined />}
+                                                                                size="small"
+                                                                                onClick={() => handleDeleteComment(item.comment_id)}
+                                                                            >
+                                                                                Xóa
+                                                                            </Button>
+                                                                        </Flex>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        }
+                                                    />
+                                                </List.Item>
+                                            )}
+                                        />
+                                    </>
+                                )
+                            }
+
+                            {
+                                activitylog?.length > 0 && (
+                                    <>
+                                        <List
+                                            dataSource={activitylog}
+                                            renderItem={(item: any) => (
+                                                <List.Item style={{ paddingLeft: "10px" }}>
+                                                    <List.Item.Meta
+                                                        avatar={<Avatar src={item?.user_avatar} />}
+                                                        title={
+                                                            <div>
+                                                                <Typography.Text strong>{item?.user_name}</Typography.Text>
+                                                                <Typography.Text style={{ marginLeft: 8, fontSize: '12px', color: '#888' }}>
+                                                                    {item?.created_at ? dayjs(item.created_at).format('DD/MM/YYYY HH:mm') : ''}
+                                                                </Typography.Text>
+                                                            </div>
+                                                        }
+                                                        description={
+                                                            <div>
+                                                                <Typography.Text>{item.description}</Typography.Text>
+                                                            </div>
                                                         }
                                                     />
                                                 </List.Item>
@@ -689,7 +939,7 @@ const CardDialog = (props: any) => {
 
                         {/* Xóa */}
                         <CustomPop action={true} handleFunction={handleDelete} title={"Xác nhận xóa thẻ"}>
-                            <Button block icon={<BookOutlined />} className={cx("button")} >Xóa</Button>
+                            <Button block icon={<MinusOutlined />} className={cx("button")} >Xóa</Button>
                         </CustomPop>
 
                         {/* Nhãn */}
@@ -758,9 +1008,77 @@ const CardDialog = (props: any) => {
                                 Nhãn
                             </Button>
                         </CustomPop>
+
+                        {/* Quy tắc */}
+                        <CustomPop
+                            title={
+                                <>
+                                    <Flex justify='center'>
+                                        Quy tắc
+                                    </Flex>
+                                </>
+                            } content={
+                                <>
+                                    <Flex vertical gap={10}>
+                                        <div style={{ width: 320, padding: '8px 0' }}>
+                                            {
+                                                setting?.map((item: any, index: number) => (
+                                                    <React.Fragment key={index}>
+                                                        <Divider style={{ margin: '5px 0' }} />
+                                                        <div style={{ padding: '8px 16px' }}>
+                                                            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                                                Ai có thể
+                                                                {item?.action === "invite" && " tham gia vào thẻ"}
+                                                                {item?.action === "handle" && (
+                                                                    <>
+                                                                        &nbsp;thao tác với thẻ <br />
+                                                                        (Việc cần làm, Đính kèm file, Ngày, Nhãn)
+                                                                    </>
+                                                                )}
+                                                                {item?.action === "checklist" && " đánh dấu Việc cần làm"}?
+                                                            </Text>
+                                                            <Radio.Group
+                                                                value={item?.permission}
+                                                                onChange={(e) => updateSetting(item.action, e.target.value)}
+                                                                style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                                                            >
+                                                                {item?.action === "invite" && (
+                                                                    <>
+                                                                        <Radio value="all guest">Tất cả thành viên trong bảng</Radio>
+                                                                        <Radio value="just admin">Chỉ khi được các quản trị viên chỉ định</Radio>
+                                                                    </>
+                                                                )}
+                                                                {item?.action === "handle" && (
+                                                                    <>
+                                                                        <Radio value="all guest">Tất cả thành viên trong bảng</Radio>
+                                                                        <Radio value="card member">Chỉ các thành viên tham gia thẻ và các quản trị viên</Radio>
+                                                                        <Radio value="just admin">Chỉ các quản trị viên</Radio>
+                                                                    </>
+                                                                )}
+                                                                {item?.action === "checklist" && (
+                                                                    <>
+                                                                        <Radio value="all guest">Tất cả thành viên trong bảng</Radio>
+                                                                        <Radio value="card member">Chỉ các thành viên tham gia thẻ và các quản trị viên</Radio>
+                                                                        <Radio value="just admin">Chỉ các quản trị viên hoặc người được chỉ định</Radio>
+                                                                    </>
+                                                                )}
+                                                            </Radio.Group>
+                                                        </div>
+                                                    </React.Fragment>
+                                                ))
+                                            }
+                                        </div>
+
+                                    </Flex>
+                                </>
+                            } >
+                            <Button block icon={<SettingOutlined />} className={cx("button")}>
+                                Quy tắc
+                            </Button>
+                        </CustomPop>
                     </Col>
                 </Row>
-            </Modal>
+            </Modal >
             <DateModal isModalDate={true} isOpen={isModalOpen} onClose={handleCloseModal} start_date={data?.start_date} end_date={data?.end_date} timer={data?.timer} card_id={data?.card_id} />
         </>
     );

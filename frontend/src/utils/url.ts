@@ -37,15 +37,23 @@ export const URL = {
       LIST: '',
       TABLE: 'table',
       DASHBOARD: 'dashboard',
-      CALENDER: 'calender'
+      CALENDER: 'calender',
+      MINDMAP: 'mindmap',
+      WHITEBOARD: 'whiteboard',
     },
 
     BUILDER: {
       LIST: (idWorkspace: any, id: any) => `/workspace/${idWorkspace}/board/${id}`,
-      TABLE: (idWorkspace: any) => `/workspace/${idWorkspace}/table`,
-      SETTING: (idWorkspace: any) => `/workspace/${idWorkspace}/setting`,
-      MEMBER: (idWorkspace: any) => `/workspace/${idWorkspace}/collab/member`,
-      GUEST: (idWorkspace: any) => `/workspace/${idWorkspace}/collab/guest`,
+      TABLE: (idWorkspace: any, id: any) => `/workspace/${idWorkspace}/board/${id}/table`,
+      CALENDER: (idWorkspace: any, id: any) => `/workspace/${idWorkspace}/board/${id}/calender`,
+      DASHBOARD: (idWorkspace: any, id: any) => `/workspace/${idWorkspace}/board/${id}/dashboard`,
+      MINDMAP: (idWorkspace: any, id: any) => `/workspace/${idWorkspace}/board/${id}/mindmap`,
+      WHITEBOARD: (idWorkspace: any, id: any) => `/workspace/${idWorkspace}/board/${id}/whiteboard`,
+
+      // TABLE: (idWorkspace: any) => `/workspace/${idWorkspace}/table`,
+      // SETTING: (idWorkspace: any) => `/workspace/${idWorkspace}/setting`,
+      // MEMBER: (idWorkspace: any) => `/workspace/${idWorkspace}/collab/member`,
+      // GUEST: (idWorkspace: any) => `/workspace/${idWorkspace}/collab/guest`,
     },
   },
 };

@@ -738,8 +738,6 @@ foreign key (`labelboard_id`) references `labelboard`(`labelboard_id`) on delete
 foreign key (`card_id`) references `card`(`card_id`) on delete cascade on update cascade
 );
 
-call GetBoardById(58, @err, @msg)
-
 -- sửa lại thủ tục lấy bảng theo ID
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetBoardById`(
@@ -867,21 +865,23 @@ DELIMITER ;
 -- sửa lại thủ tục lấy thông tin card theo ID
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetCardByID`(
-    in p_card_id int,
-    out p_error_code int,
-    out p_error_message varchar(500)
+    IN p_card_id INT,
+    OUT p_error_code INT,
+    OUT p_error_message VARCHAR(500)
 )
-begin
-    declare exit handler for sqlexception
-    begin
-        get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
-    end;
-    set p_error_code = 0;
-    set p_error_message = '';
-    start transaction;
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_code = RETURNED_SQLSTATE, p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+    END;
+
+    SET p_error_code = 0;
+    SET p_error_message = '';
+    START TRANSACTION;
 
     SELECT 
-		col.name as 'column_name',
+        col.name AS 'column_name',
         cd.card_id, 
         cd.column_id, 
         cd.name, 
@@ -892,248 +892,119 @@ begin
         cd.end_date, 
         cd.timer, 
         cd.status,
-        (SELECT JSON_ARRAYAGG(
-			   JSON_OBJECT(
-				   'user_id', u.user_id, 
-				   'name', u.name,
-				   'email', u.email,
-				   'avatar', u.avatar
-				   )
-			) 
-		 FROM `user` u
-		 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = p_card_id)) > 0
-		 ) AS 'userjoin',
-        IF(
-            COUNT(cln.checklistname_id) = 0,
-            JSON_ARRAY(),
-            JSON_ARRAYAGG(
+
+        -- Lấy thông tin người tham gia
+        (
+            SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
-                    'checklistname_id', cln.checklistname_id,
-                    'name', cln.name,
-                    'checklist', 
-                    IF(
-                        (SELECT COUNT(*) FROM `checklist` cl WHERE cl.checklistname_id = cln.checklistname_id) = 0,
-                        JSON_ARRAY(),
-                        (
-                            SELECT 
-                                JSON_ARRAYAGG(
-                                    JSON_OBJECT(
-                                        'checklist_id', cl.checklist_id,
-                                        'user_id', cl.user_id,
-                                        'name', cl.name,
-                                        'timer', cl.timer,
-                                        'status', cl.status
-                                    )
-                                )
-                            FROM `checklist` cl 
-                            WHERE cl.checklistname_id = cln.checklistname_id
+                    'user_id', u.user_id, 
+                    'name', u.name, 
+                    'email', u.email, 
+                    'avatar', u.avatar
+                )
+            )
+            FROM `user` u
+            WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = p_card_id)) > 0
+        ) AS 'userjoin',
+
+        -- Lấy thông tin checklist
+        (
+            SELECT 
+                IF(
+                    COUNT(cln.checklistname_id) = 0,
+                    JSON_ARRAY(),
+                    JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'checklistname_id', cln.checklistname_id,
+                            'name', cln.name,
+                            'checklist', 
+                            COALESCE(
+                                (
+                                    SELECT 
+                                        JSON_ARRAYAGG(
+                                            JSON_OBJECT(
+                                                'checklist_id', cl.checklist_id,
+                                                'user_id', cl.user_id,
+                                                'name', cl.name,
+                                                'timer', cl.timer,
+                                                'status', cl.status
+                                            )
+                                        )
+                                    FROM `checklist` cl 
+                                    WHERE cl.checklistname_id = cln.checklistname_id
+                                ), 
+                                JSON_ARRAY()
+                            )
                         )
                     )
                 )
-            )
+            FROM `checklistname` cln 
+            WHERE cln.card_id = cd.card_id
         ) AS `checklistname`,
-        IF(
-            COUNT(cm.comment_id) = 0,
-            JSON_ARRAY(),
-            JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'comment_id', cm.comment_id,
-                    'user_id', cm.user_id,
-                    'comment', cm.comment,
-                    'status', cm.status
+
+        -- Lấy thông tin comment
+        (
+            SELECT 
+                JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'comment_id', comment_data.comment_id,
+                        'user_name', comment_data.user_name,
+                        'user_avatar', comment_data.user_avatar,
+                        'comment', comment_data.comment,
+                        'timestamp', comment_data.timestamp
+                    )
                 )
-            )
+            FROM (
+                SELECT DISTINCT 
+                    cm.comment_id,
+                    u.name AS user_name,
+                    u.avatar AS user_avatar,
+                    cm.comment,
+                    cm.timestamp
+                FROM `comment` cm
+                LEFT JOIN `user` u ON cm.user_id = u.user_id
+                WHERE cm.card_id = cd.card_id
+                ORDER BY cm.comment_id DESC
+            ) AS comment_data
         ) AS `comment`,
-        IF(
-            COUNT(f.file_id) = 0,
-            JSON_ARRAY(),
-            JSON_ARRAYAGG(
-                JSON_OBJECT(
-					'file_id', f.file_id,
-                    'user_id', f.user_id,
-                    'path', f.path
+
+        -- Lấy thông tin file
+        (
+            SELECT 
+                JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'file_id', f.file_id,
+                        'user_id', f.user_id,
+                        'path', f.path
+                    )
                 )
-            )
+            FROM `file` f
+            WHERE f.card_id = cd.card_id
         ) AS `file`,
-        IF(
-        COUNT(l.label_id) = 0,
-        JSON_ARRAY(),
-        JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'label_id', l.label_id,
-                'labelboard_id', l.labelboard_id,
-                'name', lb.name,
-                'background', lb.background
-            )
-        )
-    ) AS `label`
-    FROM 
-        `card` cd
-    LEFT JOIN `checklistname` cln ON cd.card_id = cln.card_id
-    LEFT JOIN `comment` cm ON cd.card_id = cm.card_id
-    LEFT JOIN `file` f ON cd.card_id = f.card_id
-    LEFT JOIN `label` l ON cd.card_id = l.card_id
-	LEFT JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
-    LEFT JOIN `column` col on cd.column_id = col.column_id
-    WHERE 
-        cd.card_id = p_card_id
-    GROUP BY 
-		col.name,
-        cd.card_id, 
-        cd.column_id, 
-        cd.name, 
-        cd.description, 
-        cd.background, 
-        cd.user_id_join, 
-        cd.start_date, 
-        cd.end_date, 
-        cd.timer, 
-        cd.status;
-    commit;
-end$$
-DELIMITER ;
 
-
-
-
-
-
-
-
-
-
-
-DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `GetCardByID`(
-    in p_card_id int,
-    out p_error_code int,
-    out p_error_message varchar(500)
-)
-begin
-    declare exit handler for sqlexception
-    begin
-        get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
-    end;
-    set p_error_code = 0;
-    set p_error_message = '';
-    start transaction;
-
-    SELECT 
-		col.name as 'column_name',
-        cd.card_id, 
-        cd.column_id, 
-        cd.name, 
-        cd.description, 
-        cd.background, 
-        cd.user_id_join, 
-        cd.start_date, 
-        cd.end_date, 
-        cd.timer, 
-        cd.status,
-        (SELECT JSON_ARRAYAGG(
-			   JSON_OBJECT(
-				   'user_id', u.user_id, 
-				   'name', u.name,
-				   'email', u.email,
-				   'avatar', u.avatar
-				   )
-			) 
-		 FROM `user` u
-		 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = p_card_id)) > 0
-		 ) AS 'userjoin',
-		IF(
-			COUNT(cln.checklistname_id) = 0,
-			JSON_ARRAY(),
-			JSON_ARRAYAGG(
-				JSON_OBJECT(
-					'checklistname_id', cln.checklistname_id,
-					'name', cln.name,
-					'checklist', 
-					COALESCE(
-						(
-							SELECT 
-								JSON_ARRAYAGG(
-									JSON_OBJECT(
-										'checklist_id', cl.checklist_id,
-										'user_id', cl.user_id,
-										'name', cl.name,
-										'timer', cl.timer,
-										'status', cl.status
-									)
-								)
-							FROM `checklist` cl 
-							WHERE cl.checklistname_id = cln.checklistname_id
-						), JSON_ARRAY()
-					)
-				)
-			)
-		) AS `checklistname`,
-        IF(
-            COUNT(cm.comment_id) = 0,
-            JSON_ARRAY(),
-            JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'comment_id', cm.comment_id,
-                    'user_id', cm.user_id,
-                    'comment', cm.comment,
-                    'status', cm.status
+        -- Lấy thông tin label
+        (
+            SELECT 
+                JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'label_id', l.label_id,
+                        'labelboard_id', l.labelboard_id,
+                        'name', lb.name,
+                        'background', lb.background
+                    )
                 )
-            )
-        ) AS `comment`,
-        IF(
-            COUNT(f.file_id) = 0,
-            JSON_ARRAY(),
-            JSON_ARRAYAGG(
-                JSON_OBJECT(
-					'file_id', f.file_id,
-                    'user_id', f.user_id,
-                    'path', f.path
-                )
-            )
-        ) AS `file`,
-        IF(
-        COUNT(l.label_id) = 0,
-        JSON_ARRAY(),
-        JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'label_id', l.label_id,
-                'labelboard_id', l.labelboard_id,
-                'name', lb.name,
-                'background', lb.background
-            )
-        )
-    ) AS `label`
-    FROM 
-        `card` cd
-    LEFT JOIN `checklistname` cln ON cd.card_id = cln.card_id
-    LEFT JOIN `comment` cm ON cd.card_id = cm.card_id
-    LEFT JOIN `file` f ON cd.card_id = f.card_id
-    LEFT JOIN `label` l ON cd.card_id = l.card_id
-	LEFT JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
-    LEFT JOIN `column` col on cd.column_id = col.column_id
-    WHERE 
-        cd.card_id = p_card_id
-    GROUP BY 
-		col.name,
-        cd.card_id, 
-        cd.column_id, 
-        cd.name, 
-        cd.description, 
-        cd.background, 
-        cd.user_id_join, 
-        cd.start_date, 
-        cd.end_date, 
-        cd.timer, 
-        cd.status;
-    commit;
-end$$
+            FROM `label` l
+            INNER JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
+            WHERE l.card_id = p_card_id
+        ) AS `label`
+
+    FROM `card` cd
+    LEFT JOIN `column` col ON cd.column_id = col.column_id
+    WHERE cd.card_id = p_card_id;
+
+    COMMIT;
+END$$
 DELIMITER ;
-
-
-
-
-
-
 
 
 
@@ -1326,7 +1197,284 @@ begin
 end$$
 DELIMITER ;
 
+-- setting card
+create table `settingcard`
+(
+`settingcard_id` int NOT NULL AUTO_INCREMENT,
+`card_id` int not null,
+`action` varchar(250),
+`permission` longtext,
+primary key(`settingcard_id`),
+foreign key (`card_id`) references `card`(`card_id`) on delete cascade on update cascade
+);
 
+-- thủ tục thêm setting cho card
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateSettingCard`(
+in p_card_id int,
+in p_action varchar(250),
+in p_permission longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `settingcard`(
+        card_id,
+        action,
+        permission
+        )
+        value(
+        p_card_id,
+        p_action,
+        p_permission
+        );
+    commit;
+end$$
+DELIMITER ;
+
+-- sửa thủ tục tạo card
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateCard`(
+in p_column_id varchar(100),
+in p_name varchar(100),
+in p_status varchar(50),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+    declare p_card_id int;
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `card`(
+        column_id,
+        name,
+        status
+        )
+        value(
+		p_column_id,
+        p_name,
+        p_status
+        );
+        set p_card_id = last_insert_id();
+		call CreateSettingCard(p_card_id,'invite','all guest', @err, @msg);
+		call CreateSettingCard(p_card_id,'checklist','all guest', @err, @msg);		
+        call CreateSettingCard(p_card_id,'handle','all guest', @err, @msg);
+		select * from `card` where card_id = p_card_id;
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục lấy setting của card
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetSettingCardByID`(
+in p_card_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;        
+        SELECT *
+		FROM settingcard
+		WHERE card_id = p_card_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- thủ tục cập nhật setting card
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateSettingCard`(
+in p_card_id int,
+in p_action varchar(250),
+in p_permission longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		update `settingcard`
+		set
+        `permission` = p_permission
+		where `action` = p_action and `card_id` = p_card_id;
+	commit;
+end$$
+DELIMITER ;
+
+-- thủ tục thêm comment
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateComment`(
+in p_card_id int,
+in p_user_id int,
+in p_comment longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `comment`(
+        card_id,
+        user_id,
+        comment
+        )
+        value(
+        p_card_id,
+        p_user_id,
+        p_comment
+        );
+        select cm.comment_id, u.name as `user_name`, u.avatar as `user_avatar`, cm.comment, cm.timestamp 
+        from comment cm
+        left join user u on u.user_id = cm.user_id
+        where comment_id = last_insert_id();
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục cập nhật comment
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateComment`(
+in p_comment_id int,
+in p_comment longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		update `comment`
+        set comment = p_comment
+        where comment_id = p_comment_id;
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục xóa comment
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `DeleteComment`(
+in p_comment_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		delete from `comment` where comment_id = p_comment_id;
+    commit;
+end$$
+DELIMITER ;
+
+
+-- activitycard
+create table `activitycard`
+(
+`activitycard_id` int NOT NULL AUTO_INCREMENT,
+`user_id` int not null,
+`card_id` int not null,
+`description` longtext,
+`created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+primary key(`activitycard_id`),
+foreign key (`card_id`) references `card`(`card_id`) on delete cascade on update cascade,
+foreign key (`user_id`) references `user`(`user_id`) on delete cascade on update cascade
+);
+-- /////////////////////////
+
+
+-- thủ tục thêm hoạt động của thẻ
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateActivityCard`(
+in p_card_id int,
+in p_user_id int,
+in p_description longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `activitycard`(
+        card_id,
+        user_id,
+        description
+        )
+        value(
+        p_card_id,
+        p_user_id,
+        p_description
+        );
+        select ac.activitycard_id, u.name as `user_name`, u.avatar as `user_avatar`, ac.description, ac.created_at 
+        from activitycard ac
+        left join user u on u.user_id = ac.user_id
+        where activitycard_id = last_insert_id();
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục lấy hoạt động của thẻ theo id
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetActivityCardByID`(
+in p_card_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+        select ac.activitycard_id, u.name as `user_name`, u.avatar as `user_avatar`, ac.description, ac.created_at 
+        from activitycard ac
+        left join user u on u.user_id = ac.user_id
+        where card_id = p_card_id
+        order by activitycard_id desc;
+    commit;
+end$$
+DELIMITER ;
 
 
 

@@ -4,19 +4,19 @@ import { container } from "tsyringe";
 import { authenticate } from '../middlewares/authMiddleware';
 import { SettingBoardController } from '../controllers/settingBoardController';
 
-const settingWorkspaceRouter = Router();
+const settingBoardRouter = Router();
 const settingBoardController = container.resolve(SettingBoardController);
 
-settingWorkspaceRouter.get(
+settingBoardRouter.get(
     '/getsettingboard/:idBoard',
     authenticate,
     settingBoardController.getSettingBoardById.bind(settingBoardController)
 );
 
-settingWorkspaceRouter.post(
+settingBoardRouter.post(
     '/updatesettingboard/:idBoard',
     authenticate,
     settingBoardController.updateSettingBoard.bind(settingBoardController)
 );
 
-export default settingWorkspaceRouter;
+export default settingBoardRouter;

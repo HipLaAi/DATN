@@ -20,6 +20,8 @@ import BoardSetting from "../Setting/BoardSetting";
 import { useDispatch } from "react-redux";
 import { boardReload } from "../../../features/reloadSlice";
 import BoardLabel from "../Setting/BoardLabel";
+import { URL } from "../../../utils/url";
+import ExportComponent from "../Setting/BoardShare";
 
 const cx = classNames.bind(style);
 const { Title, Text } = Typography
@@ -139,6 +141,8 @@ const BoardBar = (props: any) => {
         />;
       case 'Nhãn':
         return <BoardLabel />;
+      case 'In, xuất và chia sẻ':
+        return <ExportComponent />;
       default:
         return null;
     }
@@ -303,22 +307,32 @@ const BoardBar = (props: any) => {
                 />
               )}
 
-            <Link to={"/workspace/" + idWorkspace + "/board/" + id}>
+            <Link to={URL.BOARD.BUILDER.LIST(idWorkspace, id)}>
               <Button type="text">
                 <Text strong>Bảng</Text>
               </Button>
             </Link>
-            <Link to={"/workspace/" + idWorkspace + "/board/" + id + "/table"}>
+            <Link to={URL.BOARD.BUILDER.TABLE(idWorkspace, id)}>
               <Button type="text">
                 <Text strong>Hàng</Text>
               </Button>
             </Link>
-            <Link to={"/workspace/" + idWorkspace + "/board/" + id + "/calender"}>
+            <Link to={URL.BOARD.BUILDER.CALENDER(idWorkspace, id)}>
               <Button type="text">
                 <Text strong>Lịch</Text>
               </Button>
             </Link>
-            <Link to={"/workspace/" + idWorkspace + "/board/" + id + "/dashboard"}>
+            <Link to={URL.BOARD.BUILDER.MINDMAP(idWorkspace, id)}>
+              <Button type="text">
+                <Text strong>Bản đồ tư duy</Text>
+              </Button>
+            </Link>
+            <Link to={URL.BOARD.BUILDER.WHITEBOARD(idWorkspace, id)}>
+              <Button type="text">
+                <Text strong>Bảng trắng</Text>
+              </Button>
+            </Link>
+            <Link to={URL.BOARD.BUILDER.DASHBOARD(idWorkspace, id)}>
               <Button type="text">
                 <Text strong>Bảng điều khiển</Text>
               </Button>

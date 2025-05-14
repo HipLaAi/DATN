@@ -7,10 +7,10 @@ type CustomPopProps = {
   title?: ReactNode;
   action?: boolean;
   position?: PopoverProps['placement'];
-  handleFunction?:()=>void
+  handleFunction?: () => void
 };
 
-const CustomPop: React.FC<CustomPopProps> = ({ children, content, title, action = false, handleFunction, position = 'top'}) => {
+const CustomPop: React.FC<CustomPopProps> = ({ children, content, title, action = false, handleFunction, position = 'top' }) => {
   const [open, setOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
@@ -21,15 +21,15 @@ const CustomPop: React.FC<CustomPopProps> = ({ children, content, title, action 
   const handleOk = () => {
     setConfirmLoading(true);
 
-    if(handleFunction){
+    if (handleFunction) {
       handleFunction()
     }
+
     setOpen(false);
     setConfirmLoading(false);
   };
 
   const handleCancel = () => {
-    console.log('Clicked cancel button');
     setOpen(false);
   };
 

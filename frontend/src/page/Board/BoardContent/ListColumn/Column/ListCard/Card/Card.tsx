@@ -126,7 +126,7 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
               ))
             }
           </Flex>
-          <Flex gap={10}>
+          <Flex gap={10} wrap="wrap">
             {
               card?.label?.map((item: any, key: any) => (
                 <Button
@@ -135,22 +135,10 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
                   style={{
                     backgroundColor: item?.background,
                     width: "50px",
-                    height: "10px"
+                    height: "10px",
+                    wordWrap: "break-word",
                   }}
                 >
-                  {/* <span
-                    style={{
-                      display: "inline-block",
-                      maxWidth: "100%",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      fontWeight: "500",
-                      color: "#2a2a2a",
-                    }}
-                  >
-                    {item?.name}
-                  </span> */}
                 </Button>
               ))
             }

@@ -90,7 +90,7 @@ export class UserController {
             if (!payloadGoogle || !payloadGoogle.email) {
                 return res.status(403).json({ message: 'Invalid token' });
             }
-
+            
             const user = await this.userService.googleLogin(payloadGoogle);
 
             const payload = {

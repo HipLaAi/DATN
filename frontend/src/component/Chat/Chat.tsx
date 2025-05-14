@@ -1,25 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Input, Button, Typography, Card, Space, Avatar, Flex } from 'antd';
-import { CloseOutlined, UserOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import style from "./Chat.module.scss"
 import { createMessageAPI, getMessageAPI } from '../../services/Message/Message.service';
-import { io, Socket } from 'socket.io-client';
 import { isArray } from 'lodash';
+import decodeJWT from '../../services/Auth/auth.service ';
+import { SocketService } from '../../services/Socket/Socket.service';
+import EmojiPicker from "emoji-picker-react";
 
 const { Text, Title } = Typography;
 const cx = classNames.bind(style)
 
 const ChatApp = (props: any) => {
-
   const { converSation } = props
-  const idUser = localStorage.getItem("user_id")
-
+  const token = localStorage.getItem('accessToken') as string;
+  const userInfo = decodeJWT(token);
+  const idUser = userInfo.user_id;
   const [messageData, setMessageData] = useState<any[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  const socketRef = useRef<any>(null);
 
-  const [socket, setSocket] = useState<Socket | null>(null);
-
+  // Call API lấy tin nhắn
   const fetchMessage = async () => {
     const response = await getMessageAPI(converSation.conversation_id as string)
     if (isArray(messageData)) {
@@ -27,7 +33,7 @@ const ChatApp = (props: any) => {
     }
   }
 
-
+  // Xử lý nhập tin nhắn
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -35,17 +41,10 @@ const ChatApp = (props: any) => {
     }
   };
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-
+  // Xử lý gửi tin nhắn
   const handleSendMessage = async () => {
-    if (inputValue.trim() && socket) {
-      // Send message to the server
-      socket.emit('send_message', {
+    if (inputValue.trim() && socketRef.current) {
+      socketRef.current.emit('send_message', {
         message: inputValue,
         sender_id: idUser as string,
         receive_id: converSation.user_id as string
@@ -68,32 +67,41 @@ const ChatApp = (props: any) => {
   };
 
 
+  console.log(messageData);
+
+  // load tin nhắn
   useEffect(() => {
-    const newSocket = io('http://localhost:4040');
-    setSocket(newSocket);
-    newSocket.on('receive_message', (data: { message: string, sender_id: string, receive_id: string }) => {
-      setMessageData((prevMessages) => [
-        ...prevMessages,
-        { message: data.message, sender_id: data.sender_id },
-      ]);
-    });
+    try {
+      socketRef.current = SocketService.connect();
+      socketRef.current.on('receive_message', (data: { message: string, sender_id: string, receive_id: string }) => {
+        setMessageData((prevMessages) => [
+          ...prevMessages,
+          { message: data.message, sender_id: data.sender_id },
+        ]);
+      });
 
-    scrollToBottom();
+      scrollToBottom();
 
-    return () => {
-      newSocket.disconnect();
-    };
+      return () => {
+        socketRef.current.off('receive_message');
+      };
+
+    } catch (error) {
+      console.error(error);
+    }
   }, [messageData]);
 
-  useEffect(() => {
-    if (socket) {
-      socket.emit("new_user_add", idUser);
-    }
-  }, [socket]);
-
+  // Mở hộp thoại
   useEffect(() => {
     fetchMessage()
   }, [converSation?.conversation_id])
+
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Trạng thái mở Emoji Picker
+
+  const handleEmojiClick = (emojiObject: any) => {
+    // Thêm emoji vào nội dung tin nhắn
+    setInputValue((prevContent) => prevContent + emojiObject.emoji);
+  };
 
   return (
     <div className={cx("chat")}>
@@ -154,15 +162,28 @@ const ChatApp = (props: any) => {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type your message..."
+          placeholder="Nhập tin nhắn..."
           autoSize={{ minRows: 1, maxRows: 4 }}
+          spellCheck={false}
         />
         <div>
+          <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😊</button>
           <Button type="text" onClick={handleSendMessage} className={cx("btn-send")}>
             Gửi
           </Button>
         </div>
       </div>
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <EmojiPicker
+        onEmojiClick={handleEmojiClick}
+        width="100%"
+        height="100%"
+        style={{ 
+          '--epr-emoji-size': '20px'
+        }}
+      />
+      )}
     </div>
   );
 };

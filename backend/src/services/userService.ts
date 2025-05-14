@@ -27,7 +27,6 @@ export class UserService {
 
     async googleLogin(payload: any): Promise<any> {
         const user = await this.userReponsitory.getUserByEmail(payload.email);
-        console.log(user);
         if (user) {
             return {
                 user_id: user[0].user_id,

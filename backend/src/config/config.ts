@@ -20,7 +20,8 @@ export const config = {
         key: process.env.API_KEY!
     },
     google: {
-        clientId: process.env.GG_CLIENT_ID!
+        clientId: process.env.GG_CLIENT_ID!,
+        clientSecret: process.env.GG_CLIENT_SECRET!
     },
     client: {
         origin: process.env.CLIENT_ORIGIN!

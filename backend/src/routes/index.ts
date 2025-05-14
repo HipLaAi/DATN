@@ -14,6 +14,10 @@ import chatRouter from './chatRouter';
 import settingWorkspaceRouter from './settingWorkspaceRouter';
 import settingBoardRouter from './settingBoardRouter';
 import labelBoardRouter from './labelBoardRouter';
+import settingCardRouter from './settingCardRouter';
+import commentRouter from './commentRouter';
+import activityLogRouter from './activityLogRouter';
+import meetingRouter from './meetingRouter';
 
 const router = Router();
 router.use('', userRouter);
@@ -23,17 +27,16 @@ router.use('/column', columnRouter);
 router.use('/card', cardRouter);
 router.use('/conversation', conversationRouter);
 router.use('/message', messageRouter);
-
 router.use('/file', fileRouter);
 router.use('/checklist', checkListRouter);
-
 router.use('/chat', chatRouter);
-
 router.use('/settingworkspace', settingWorkspaceRouter);
-
 router.use('/settingboard', settingBoardRouter);
-
+router.use('/settingcard', settingCardRouter);
 router.use('/labelboard', labelBoardRouter);
+router.use('/comment', commentRouter);
+router.use('/activitylog', activityLogRouter);
+router.use('/meeting', meetingRouter);
 
 
 export default router;

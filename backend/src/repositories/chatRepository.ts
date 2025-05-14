@@ -9,8 +9,8 @@ export class ChatReponsitory {
     async getChatResponse(repuest: string): Promise<any> {
         try {
             if (repuest.toLowerCase().includes("nhiệm vụ") || repuest.toLowerCase().includes("task")) {
-                const sql = 'call GetBoardByID(?, @err_code, @err_msg)';
-                const [results] = await this.db.query(sql, [23]);
+                const sql = 'call GetBoardByID(?, ?, @err_code, @err_msg)';
+                const [results] = await this.db.query(sql, [59, 13]);
 
                 if (!(Array.isArray(results) && results.length > 0)) {
                     return "Hiện tại không có nhiệm vụ nào.";

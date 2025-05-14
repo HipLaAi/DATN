@@ -20,6 +20,9 @@ import { Member } from "../page/Work/component/WorkPage/Collaborator/Member";
 import { Guest } from "../page/Work/component/WorkPage/Collaborator/Guest";
 import MindMap from "../page/Board/BoardContent/MindMap/MindMap";
 import Whiteboard from "../page/Board/BoardContent/WhiteBoard/WhiteBoard";
+import VideoCallComponent from "../component/VideoCall/VideoCallComponent ";
+import Main from "../page/Home/Main/Main";
+import ChatComponent from "../page/Home/Message/Message";
 
 const route = createBrowserRouter([
   {
@@ -28,6 +31,18 @@ const route = createBrowserRouter([
       {
         path: URL.HOME.BOARD,
         element: <Board />
+      },
+      {
+        path: "/",
+        element: <Main />
+      },
+      {
+        path: "videocall",
+        element: <VideoCallComponent />
+      },
+      {
+        path: "message",
+        element: <ChatComponent />
       },
       {
         path: URL.WORKSPACE.ROUTER.WORKSPACE,
@@ -78,11 +93,11 @@ const route = createBrowserRouter([
             element: <DashBoard />
           },
           {
-            path: "mindmap",
+            path: URL.BOARD.ROUTER.MINDMAP,
             element: <MindMap />
           },
           {
-            path: "whiteboard",
+            path: URL.BOARD.ROUTER.WHITEBOARD,
             element: <Whiteboard />
           }
         ]
