@@ -60,7 +60,7 @@ const SettingWorkPage = () => {
 
     useEffect(() => {
         scrollToTop();
-    }, [idWorkspace])
+    }, [data, idWorkspace])
 
     const showDeleteConfirm = () => {
         confirm({
@@ -160,7 +160,7 @@ const SettingWorkPage = () => {
                                                                         style={{ width: "100%" }}
                                                                         mode="none"
                                                                         selectable={true}
-                                                                        defaultSelectedKeys={[data?.status]}
+                                                                        selectedKeys={[data?.status]}
                                                                     >
                                                                         {optionStatus.map((item) => (
                                                                             <Menu.Item
@@ -329,7 +329,7 @@ const SettingWorkPage = () => {
 
                         {/* Hạn chế xóa bảng */}
                         <List
-                            header={<Text strong style={{ fontSize: "16px" }}>Chính sách hạn chế tạo bảng</Text>}
+                            header={<Text strong style={{ fontSize: "16px" }}>Chính sách hạn chế xóa bảng</Text>}
                             dataSource={setting ? [setting] : []}
                             renderItem={(item: any) => (
                                 item?.setting?.map((item: any, index: any) => (
@@ -348,27 +348,27 @@ const SettingWorkPage = () => {
                                                             >
                                                                 {key === "public" && (
                                                                     <>
-                                                                        {value === "all member" && ("Bất kỳ thành viên Không gian làm việc nào cũng có thể tạo ")}
-                                                                        {value === "just admin" && ("Chỉ các quản trị viên của Không gian làm việc mới có thể tạo ")}
-                                                                        {value === "no one" && ("Không ai có thể tạo ")}
+                                                                        {value === "all member" && ("Bất kỳ thành viên Không gian làm việc nào cũng có thể xóa ")}
+                                                                        {value === "just admin" && ("Chỉ các quản trị viên của Không gian làm việc mới có thể xóa ")}
+                                                                        {value === "no one" && ("Không ai có thể xóa ")}
                                                                         <GlobalOutlined style={{ color: "green" }} />
                                                                         {` bảng thông tin công khai`}
                                                                     </>
                                                                 )}
                                                                 {key === "workspace" && (
                                                                     <>
-                                                                        {value === "all member" && ("Bất kỳ thành viên Không gian làm việc nào cũng có thể tạo ")}
-                                                                        {value === "just admin" && ("Chỉ các quản trị viên của Không gian làm việc mới có thể tạo ")}
-                                                                        {value === "no one" && ("Không ai có thể tạo ")}
+                                                                        {value === "all member" && ("Bất kỳ thành viên Không gian làm việc nào cũng có thể xóa ")}
+                                                                        {value === "just admin" && ("Chỉ các quản trị viên của Không gian làm việc mới có thể xóa ")}
+                                                                        {value === "no one" && ("Không ai có thể xóa ")}
                                                                         <IoPeople size={18} style={{ color: "#ffbe18", display: "inline" }} />
                                                                         {` bảng thông tin hiển thị trong Không gian làm việc`}
                                                                     </>
                                                                 )}
                                                                 {key === "private" && (
                                                                     <>
-                                                                        {value === "all member" && ("Bất kỳ thành viên Không gian làm việc nào cũng có thể tạo ")}
-                                                                        {value === "just admin" && ("Chỉ các quản trị viên của Không gian làm việc mới có thể tạo ")}
-                                                                        {value === "no one" && ("Không ai có thể tạo ")}
+                                                                        {value === "all member" && ("Bất kỳ thành viên Không gian làm việc nào cũng có thể xóa ")}
+                                                                        {value === "just admin" && ("Chỉ các quản trị viên của Không gian làm việc mới có thể xóa ")}
+                                                                        {value === "no one" && ("Không ai có thể xóa ")}
                                                                         <LockOutlined style={{ color: "red" }} />
                                                                         {` bảng thông tin riêng tư`}
                                                                     </>
@@ -383,7 +383,7 @@ const SettingWorkPage = () => {
                                                             <CustomPop title={
                                                                 <>
                                                                     <div style={{ display: "flex", justifyContent: "center" }}>
-                                                                        <Text>Chính Sách Hạn Chế Tạo Bảng</Text>
+                                                                        <Text>Chính Sách Hạn Chế Xóa Bảng</Text>
                                                                     </div>
                                                                 </>
                                                             } content={
@@ -395,7 +395,7 @@ const SettingWorkPage = () => {
                                                                                     <Divider style={{ margin: '5px 0' }} />
                                                                                     <div style={{ padding: '8px 16px' }}>
                                                                                         <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                                                                                            Ai có thể tạo bảng thông tin
+                                                                                            Ai có thể xóa bảng thông tin
                                                                                             {key === "public" && (" công khai")}
                                                                                             {key === "workspace" && (" Không gian làm việc")}
                                                                                             {key === "private" && (" riêng tư")} ?
@@ -418,7 +418,7 @@ const SettingWorkPage = () => {
                                                                 </>
                                                             }
                                                                 position={"left"}>
-                                                                <Button title='Quyền bị hạn chế' color='default' variant='filled'>Thay đổi</Button>
+                                                                <Button title='' color='default' variant='filled'>Thay đổi</Button>
                                                             </CustomPop>
                                                         ) : (
                                                             <Button
@@ -484,7 +484,7 @@ const SettingWorkPage = () => {
                                                                                 style={{ width: "100%" }}
                                                                                 mode="none"
                                                                                 selectable={true}
-                                                                                defaultSelectedKeys={[item?.permission?.status]}
+                                                                                selectedKeys={[item?.permission?.status]}
                                                                             >
                                                                                 {optionShare.map((item) => (
                                                                                     <Menu.Item

@@ -8,15 +8,20 @@ const activityLogRouter = Router();
 const activityLogController = container.resolve(ActivityLogController);
 
 activityLogRouter.post(
-    '/create',
+    '/createcard',
     authenticate,
-    activityLogController.createActivityLog.bind(activityLogController)
+    activityLogController.createActivityCard.bind(activityLogController)
 );
 
 activityLogRouter.get(
     '/get/:idCard',
     authenticate,
     activityLogController.getActivityCard.bind(activityLogController)
+);
+
+activityLogRouter.post(
+    '/createuser',
+    activityLogController.createActivityUser.bind(activityLogController)
 );
 
 export default activityLogRouter;

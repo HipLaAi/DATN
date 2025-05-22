@@ -75,5 +75,23 @@ cardRouter.get(
     cardController.getCardByUser.bind(cardController)
 );
 
+cardRouter.post(
+    '/getcardenddate',
+    authenticate,
+    cardController.getCardEndDate.bind(cardController)
+);
+
+cardRouter.post(
+    '/getcard',
+    authenticate,
+    cardController.getCard.bind(cardController)
+);
+
+cardRouter.get(
+    '/getcardinweek',
+    authenticate,
+    cardController.getCardInWeek.bind(cardController)
+);
+
 
 export default cardRouter;

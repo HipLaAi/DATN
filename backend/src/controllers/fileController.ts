@@ -19,8 +19,7 @@ export class FileController {
         }
 
         try {
-            const files = req.files as Express.Multer.File[];
-            const filePaths = files.map(file => file.path);
+            const filePaths = await uploadMiddleware.UploadFiles(req);
             const user = (req as any).user;
             const results = await this.fileService.createFile({
                 ...value,
@@ -37,8 +36,8 @@ export class FileController {
     async deleteFile(req: Request, res: Response): Promise<any> {
         try {
             const id = req.params.id;
-            const oldFilePath  = await this.fileService.deleteFile(id);
-            uploadMiddleware.Remove(oldFilePath.old_path);
+            const oldFilePath = await this.fileService.deleteFile(id);
+            await uploadMiddleware.Remove(oldFilePath.old_path);
             return res.status(200).json(oldFilePath);
         } catch (error: any) {
             return res.status(500).json({ message: error.message, success: false });

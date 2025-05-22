@@ -1,5 +1,5 @@
-import React from "react";
-import { Menu, Badge, Avatar, Divider } from "antd";
+import React, { useEffect, useState } from "react";
+import { Menu, Badge, Avatar, Divider, Flex, Button, Modal } from "antd";
 import {
     InfoCircleOutlined,
     AppstoreOutlined,
@@ -14,136 +14,20 @@ import {
     CopyOutlined,
     ShareAltOutlined,
     TableOutlined,
+    DeleteOutlined,
+    ExclamationCircleFilled,
+    UserOutlined,
+    LogoutOutlined,
 } from "@ant-design/icons";
+import CustomPop from "../../../component/PopConfirm/PopConfirm";
+import { getSettingWorkspaceAPI } from "../../../services/Setting/settingWorkspace.service";
+import { getWorkSpacedByIdAPI } from "../../../services/WorkSpace/workSapce.service";
+import { useNavigate, useParams } from "react-router-dom";
+import { deleteBoardAPI } from "../../../services/Board/board.sevice";
+import { URL } from "../../../utils/url";
+import { useDispatch } from "react-redux";
+import { boardReload } from "../../../features/reloadSlice";
 
-// const items = [
-//     {
-//         key: "Thông tin bảng",
-//         icon: <InfoCircleOutlined style={{ fontSize: "16px" }} />,
-//         label: (
-//             <span style={{ fontSize: "16px" }}>
-//                 Thông tin bảng
-//             </span>
-//         ),
-//     },
-//     {
-//         key: "Cài đặt",
-//         icon: <SettingOutlined style={{ fontSize: "16px" }} />,
-//         label: (
-//             <span style={{ fontSize: "16px" }}>
-//                 Cài đặt
-//             </span>
-//         ),
-//     },
-//     {
-//         key: "Trường tùy chỉnh",
-//         icon: <ToolOutlined style={{ fontSize: "16px" }} />,
-//         label: (
-//             <span style={{ fontSize: "16px" }}>
-//                 Trường tùy chỉnh
-//             </span>
-//         ),
-//     },
-//     {
-//         key: "Hoạt động",
-//         icon: <ToolOutlined style={{ fontSize: "16px" }} />,
-//         label: (
-//             <span style={{ fontSize: "16px" }}>
-//                 Hoạt động
-//             </span>
-//         ),
-//     },
-//     {
-//         key: "Mục lưu trữ",
-//         icon: <ToolOutlined style={{ fontSize: "16px" }} />,
-//         label: (
-//             <span style={{ fontSize: "16px" }}>
-//                 Mục lưu trữ
-//             </span>
-//         ),
-//     },
-//     {
-//         key: "Sao chép bảng",
-//         icon: <ToolOutlined style={{ fontSize: "16px" }} />,
-//         label: (
-//             <span style={{ fontSize: "16px" }}>
-//                 Sao chép bảng
-//             </span>
-//         ),
-//     },
-//     {
-//         key: "Lọc",
-//         icon: <ToolOutlined style={{ fontSize: "16px" }} />,
-//         label: (
-//             <span style={{ fontSize: "16px" }}>
-//                 Lọc theo
-//             </span>
-//         ),
-//     },
-// {
-//     key: "Tạo cuộc họp",
-//     icon: <ToolOutlined style={{ fontSize: "16px" }} />,
-//     label: (
-//         <span style={{ fontSize: "16px" }}>
-//             Tạo cuộc họp
-//         </span>
-//     ),
-// },
-// {
-//     key: "Tạo cuộc họp",
-//     icon: <ToolOutlined style={{ fontSize: "16px" }} />,
-//     label: (
-//         <span style={{ fontSize: "16px" }}>
-//             Tin nhắn nhóm
-//         </span>
-//     ),
-// },
-// {
-//     key: "Tạo cuộc họp",
-//     icon: <ToolOutlined style={{ fontSize: "16px" }} />,
-//     label: (
-//         <span style={{ fontSize: "16px" }}>
-//             Thay đổi hình nền
-//         </span>
-//     ),
-// },
-// {
-//     key: "Nhãn",
-//     icon: <TagsOutlined style={{ fontSize: "16px" }} />,
-//     label: (
-//         <span style={{ fontSize: "16px" }}>
-//             Nhãn
-//         </span>
-//     ),
-// },
-// {
-//     key: "Theo dõi",
-//     icon: <EyeOutlined style={{ fontSize: "16px" }} />,
-//     label: (
-//         <span style={{ fontSize: "16px" }}>
-//             Theo dõi
-//         </span>
-//     ),
-// },
-//     {
-//         key: "In, xuất và chia sẻ",
-//         icon: <ShareAltOutlined style={{ fontSize: "16px" }} />,
-//         label: (
-//             <span style={{ fontSize: "16px" }}>
-//                 In, xuất và chia sẻ
-//             </span>
-//         ),
-//     },
-//     {
-//         key: "Xóa bảng",
-//         icon: <TableOutlined style={{ fontSize: "16px" }} />,
-//         label: (
-//             <span style={{ fontSize: "16px" }}>
-//                 Xóa bảng
-//             </span>
-//         ),
-//     },
-// ];
 
 const groupedItems = [
     {
@@ -202,7 +86,7 @@ const groupedItems = [
             {
                 key: "In, xuất và chia sẻ",
                 icon: <ShareAltOutlined style={{ fontSize: "16px" }} />,
-                label: "In, xuất và chia sẻ",
+                label: "In, xuất và chia sẻ"
             },
         ],
     },
@@ -213,6 +97,7 @@ const groupedItems = [
                 key: "Xóa bảng",
                 icon: <TableOutlined style={{ fontSize: "16px" }} />,
                 label: "Xóa bảng",
+                action: () => alert("Bảng đã được xóa")
             },
             {
                 key: "Tạo cuộc họp",
@@ -243,51 +128,210 @@ const groupedItems = [
     },
 ];
 
+
 interface MenuComponentProps {
     setActiveMenu: (key: string) => void;
+    board: any
 }
 
-const MenuComponent: React.FC<MenuComponentProps> = ({ setActiveMenu }) => {
+const MenuComponent: React.FC<MenuComponentProps> = ({ setActiveMenu, board }) => {
+    const { idWorkspace } = useParams()
+    const [setting, setSetting] = useState<any>();
+    const [workspace, setWorkspace] = useState<any>();
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { confirm } = Modal;
+
+    const getSettingWorkspace = async () => {
+        if (idWorkspace) {
+            const results = await getSettingWorkspaceAPI(idWorkspace);
+            setSetting(results);
+        }
+    }
+
+    // Gọi API lấy thông tin không gian làm việc
+    const fetchWorkSpaceDetails = async () => {
+        const reponse = await getWorkSpacedByIdAPI(idWorkspace)
+        setWorkspace(reponse)
+    }
+
+    // Gọi API xóa bảng
+    const fetchDeleteBoard = async () => {
+        try {
+            await deleteBoardAPI(board?.board_id);
+            dispatch(boardReload());
+            navigate(URL.HOME.BOARD);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    const showDeleteConfirm = () => {
+        confirm({
+            title: 'Bạn có chắc chắn muốn xóa bảng này?',
+            icon: <ExclamationCircleFilled />,
+            content: 'Hành động này không thể hoàn tác. Tất cả dữ liệu sẽ bị xóa vĩnh viễn.',
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk() {
+                fetchDeleteBoard();
+            },
+            onCancel() {
+            },
+        });
+    }
+
+    useEffect(() => {
+        getSettingWorkspace();
+        fetchWorkSpaceDetails();
+    }, [idWorkspace])
+
+
     return (
-        // <Menu
-        //     mode="inline"
-        //     style={{ margin: 0, padding: 0, border: "none", backgroundColor: "rgb(249 250 251 / var(--tw-bg-opacity, 1))" }}
-        //     items={items.map((item) => ({
-        //         key: item.key,
-        //         icon: item.icon,
-        //         onClick: () => setActiveMenu(item.key),
-        //         label: (
-        //             <div>
-        //                 {item.label}
-        //             </div>
-        //         ),
-        //     }))}
-        // />
-        <Menu
-            mode="inline"
-            style={{
-                margin: 0,
-                padding: 0,
-                border: "none",
-                backgroundColor: "rgb(249 250 251 / var(--tw-bg-opacity, 1))",
-            }}
-        >
-            {groupedItems.map((group, index) => (
-                <div key={group.group}>
-                    {group.items.map((item) => (
-                        <Menu.Item
-                            style={{ padding: "10px" }}
-                            key={item.key}
-                            icon={item.icon}
-                            onClick={() => setActiveMenu(item.key)}
-                        >
-                            {item.label}
-                        </Menu.Item>
-                    ))}
-                    {index < groupedItems.length - 1 && <Divider style={{ margin: "10px" }} />}
-                </div>
-            ))}
-        </Menu>
+        <Flex vertical gap={10}>
+            <Button
+                type="text"
+                style={{
+                    marginTop: "10px",
+                    fontSize: "16px",
+                    height: "50px",
+                    width: "100%",
+                    justifyContent: "flex-start"
+                }}
+                icon={<InfoCircleOutlined />}
+                onClick={() => setActiveMenu("Thông tin bảng")}
+            >
+                Thông tin bảng
+            </Button>
+            <Button
+                type="text"
+                style={{
+                    fontSize: "16px",
+                    height: "50px",
+                    width: "100%",
+                    justifyContent: "flex-start"
+                }}
+                icon={<SettingOutlined />}
+                onClick={() => setActiveMenu("Cài đặt")}
+            >
+                Cài đặt
+            </Button>
+            <Button
+                type="text"
+                style={{
+                    fontSize: "16px",
+                    height: "50px",
+                    width: "100%",
+                    justifyContent: "flex-start"
+                }}
+                icon={<TagsOutlined />}
+                onClick={() => setActiveMenu("Nhãn")}
+            >
+                Nhãn
+            </Button>
+            <Button
+                type="text"
+                style={{
+                    fontSize: "16px",
+                    height: "50px",
+                    width: "100%",
+                    justifyContent: "flex-start"
+                }}
+                icon={<UserOutlined />}
+                onClick={() => setActiveMenu("Thành viên")}
+            >
+                Thành viên
+            </Button>
+            <Button
+                type="text"
+                style={{
+                    fontSize: "16px",
+                    height: "50px",
+                    width: "100%",
+                    justifyContent: "flex-start"
+                }}
+                icon={<ShareAltOutlined />}
+                onClick={() => setActiveMenu("In, xuất và chia sẻ")}
+            >
+                In, xuất và chia sẻ
+            </Button>
+            {
+                ["public", "workspace", "private"].includes(board?.status) &&
+                    setting?.setting
+                        ?.filter((item: any) => item.action === "deleteboard")
+                        ?.some((item: any) =>
+                            Object.entries(item.permission).some(([key, value]) => {
+                                if (workspace?.role === "own") {
+                                    return true
+                                }
+                                if (key === board?.status) {
+                                    if (value === "all member") {
+                                        return true
+                                    }
+                                    if (value === "just admin" && (board?.role === "own")) {
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            })
+                        ) ? (
+                    <Button
+                        key="delete"
+                        type="text"
+                        danger
+                        onClick={showDeleteConfirm}
+                        style={{
+                            fontSize: "16px",
+                            height: "50px",
+                            width: "100%",
+                            justifyContent: "flex-start"
+                        }}
+                        icon={<DeleteOutlined />}
+                    >
+                        Xóa
+                    </Button>
+                ) : (
+                    <Button
+                        key="delete"
+                        type="text"
+                        danger
+                        title="Quyền bị hạn chế"
+                        disabled={true}
+                        style={{
+                            fontSize: "16px",
+                            height: "50px",
+                            width: "100%",
+                            justifyContent: "flex-start"
+                        }}
+                        icon={<DeleteOutlined />}
+                    >
+                        Xóa
+                    </Button>
+                )
+            }
+            {
+                board?.role === "own" || board?.role === "guest" ? (
+                    <Button
+                        danger
+                        type="text"
+                        style={{
+                            fontSize: "16px",
+                            height: "50px",
+                            width: "100%",
+                            justifyContent: "flex-start"
+                        }}
+                        icon={<LogoutOutlined />}
+                        onClick={() => setActiveMenu("Thành viên")}
+                    >
+                        Rời khỏi bảng
+                    </Button>
+                ) : (
+                    <></>
+                )
+            }
+
+        </Flex>
     );
 };
 

@@ -1477,6 +1477,869 @@ end$$
 DELIMITER ;
 
 
+-- activityuser
+CREATE TABLE `activityuser` (
+    activityuser_id int NOT NULL AUTO_INCREMENT,
+    user_id int NOT NULL, 
+    action VARCHAR(255),
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    device VARCHAR(255),
+    browser VARCHAR(255),
+    url VARCHAR(255),
+    status VARCHAR(50),
+    primary key(`activityuser_id`),
+	foreign key (`user_id`) references `user`(`user_id`) on delete cascade on update cascade
+);
+
+
+-- thủ tục thêm hoạt động của user
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateActivityUser`(
+in p_user_id int,
+in p_action VARCHAR(255),
+in p_ip_address VARCHAR(45),
+in p_device VARCHAR(255),
+in p_browser VARCHAR(255),
+in p_url VARCHAR(255),
+in p_status VARCHAR(50),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+	IF NOT EXISTS (
+		SELECT 1 
+		FROM activityuser 
+		WHERE user_id = p_user_id 
+			AND ip_address = p_ip_address
+			AND device = p_device
+			AND browser = p_browser
+			AND DATE(created_at) = CURRENT_DATE
+	) THEN 
+		insert into `activityuser`(
+		user_id,
+		action,
+		ip_address,
+		device,
+		browser,
+		url,
+		status
+        )
+        value(
+ 		p_user_id,
+		p_action,
+		p_ip_address,
+		p_device,
+		p_browser,
+		p_url,
+		p_status
+        );
+        END IF;
+    commit;
+end$$
+DELIMITER ;
+
+
+use datn;
+select count(distinct(user_id)) as count from activityuser;
+
+call GetUserGrowthRate(6, @err, @msg);
+call GetNewUser(3, @err, @msg);
+call GetActivityUser(@err, @msg);
+call GetAllUser(@err, @msg);
+
+-- thủ tục lấy phần trăm tăng trưởng user
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetUserGrowthRate`(
+in p_month int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+    DECLARE start_users INT DEFAULT 0;
+    DECLARE end_users INT DEFAULT 0;
+    DECLARE growth DECIMAL(10,2) DEFAULT 0;
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		SELECT COUNT(*) INTO start_users
+		FROM user
+		WHERE created_at < DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL p_month MONTH), '%Y-%m-01');
+
+		SELECT COUNT(*) INTO end_users FROM user;
+
+		IF start_users = 0 THEN
+			SET growth = 0;
+		ELSE
+			SET growth = ((end_users - start_users) / start_users) * 100;
+		END IF;
+		SELECT growth;
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục lấy user new
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetNewUser`(
+in p_month int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		SELECT COUNT(*) as count
+		FROM user
+		WHERE created_at BETWEEN DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL p_month MONTH), '%Y-%m-01') AND DATE_FORMAT(CURDATE(), '%Y-%m-01');
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục lấy user hoạt động
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetActivityUser`(
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		select count(distinct(user_id)) as count from activityuser;
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục lấy user
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetAllUser`(
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		select user_id, name, email, status, description, avatar, created_at from user;
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ thống kê người dùng
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetActivityUserByRange`(
+    IN p_time_range VARCHAR(10),
+    OUT p_error_code INT,
+    OUT p_error_message VARCHAR(500)
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_code = RETURNED_SQLSTATE, p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+    END;
+
+    SET p_error_code = 0;
+    SET p_error_message = '';
+
+    START TRANSACTION;
+
+    IF p_time_range = 'month' THEN
+        SELECT 
+            DATE(created_at) AS date,
+            COUNT(DISTINCT user_id) AS user_count
+        FROM 
+            activityuser
+        WHERE 
+            MONTH(created_at) = MONTH(CURDATE())
+            AND YEAR(created_at) = YEAR(CURDATE())
+        GROUP BY 
+            DATE(created_at)
+        ORDER BY 
+            DATE(created_at);
+
+    ELSEIF p_time_range = 'week' THEN
+        SELECT 
+            DATE(created_at) AS date,
+            COUNT(DISTINCT user_id) AS user_count
+        FROM 
+            activityuser
+        WHERE 
+            WEEK(created_at, 1) = WEEK(CURDATE(), 1)
+            AND YEAR(created_at) = YEAR(CURDATE())
+        GROUP BY 
+            DATE(created_at)
+        ORDER BY 
+            DATE(created_at);
+
+    ELSE
+        SET p_error_code = 1;
+        SET p_error_message = 'Invalid time range. Use "month" or "week".';
+    END IF;
+
+    COMMIT;
+END$$
+DELIMITER ;
+
+-- sửa thủ tục đăng ký
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateUser`(
+in p_name varchar(50),
+in p_email varchar(100),
+in p_password varchar(250),
+in p_avatar longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `user`(
+        name,
+        email,
+        password,
+        avatar
+        )
+        value(
+        p_name,
+        p_email,
+        p_password,
+        p_avatar
+        );
+        select * from `user` where user_id = last_insert_id();
+    commit;
+end$$
+DELIMITER ;
+
+-- sửa thủ tục đăng nhập
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetUserByAccount`(
+in p_email varchar(100),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		select * from `user`
+        where email = p_email;
+    commit;
+end$$
+DELIMITER ;
+
+-- sửa thủ tục lấy emal
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetUserByEmail`(
+in p_email varchar(100),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		select user_id, name, email, avatar, password from `user`
+        where email like CONCAT('%', p_email, '%');
+    commit;
+end$$
+DELIMITER ;
+
+-- thủ tục lấy các công việc sắp hết hạn trong vòng 2 ngày tới
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetCardEndDate`(
+    IN p_user_id INT,
+    IN p_option VARCHAR(10),
+    OUT p_error_code INT,
+    OUT p_error_message VARCHAR(500)
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_code = RETURNED_SQLSTATE, p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+    END;
+
+    SET p_error_code = 0;
+    SET p_error_message = '';
+
+    START TRANSACTION;
+
+    IF p_option = 'mycard' THEN
+		SELECT cd.card_id, cd.name as card_name, cd.start_date, cd.end_date, cd.status as card_status, b.board_id, b.name as board_name, w.workspace_id, w.name as workspace_name
+		FROM card cd
+		LEFT JOIN `column` cl ON cl.column_id = cd.column_id
+		LEFT JOIN `board` b ON b.board_id = cl.board_id
+		LEFT JOIN `workspace` w ON w.workspace_id = b.workspace_id
+		WHERE (end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 2 DAY)) AND FIND_IN_SET(p_user_id, user_id_join);
+
+    ELSEIF p_option = 'allcard' THEN
+		SELECT DISTINCT cd.card_id, cd.name as card_name, cd.start_date, cd.end_date, cd.status as card_status, 
+                b.board_id, b.name as board_name, w.workspace_id, w.name as workspace_name
+		FROM card cd
+		LEFT JOIN `column` cl ON cl.column_id = cd.column_id
+		LEFT JOIN `board` b ON b.board_id = cl.board_id
+		LEFT JOIN `workspace` w ON w.workspace_id = b.workspace_id
+		LEFT JOIN `member` m ON m.workspace_id = b.workspace_id
+		LEFT JOIN `guest` g ON g.board_id = b.board_id
+		WHERE 
+			(g.user_id = p_user_id AND g.role = 'own' AND (cd.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 2 DAY))) 
+			OR (m.user_id = p_user_id AND m.role = 'own' AND (cd.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 2 DAY)));
+    ELSE
+        SET p_error_code = 1;
+        SET p_error_message = 'Invalid time range. Use "month" or "week".';
+    END IF;
+
+    COMMIT;
+END$$
+DELIMITER ;
+
+-- thủ tục lấy các công việc
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetCard`(
+    IN p_user_id INT,
+    IN p_option VARCHAR(10),
+    OUT p_error_code INT,
+    OUT p_error_message VARCHAR(500)
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 p_error_code = RETURNED_SQLSTATE, p_error_message = MESSAGE_TEXT;
+        ROLLBACK;
+    END;
+
+    SET p_error_code = 0;
+    SET p_error_message = '';
+
+    START TRANSACTION;
+
+    IF p_option = 'mycard' THEN
+		SELECT cd.card_id, cd.name as card_name, cd.start_date, cd.end_date, cd.status as card_status, b.board_id, b.name as board_name, w.workspace_id, w.name as workspace_name
+		FROM card cd
+		LEFT JOIN `column` cl ON cl.column_id = cd.column_id
+		LEFT JOIN `board` b ON b.board_id = cl.board_id
+		LEFT JOIN `workspace` w ON w.workspace_id = b.workspace_id
+		WHERE FIND_IN_SET(p_user_id, user_id_join);
+
+    ELSEIF p_option = 'allcard' THEN
+		SELECT DISTINCT cd.card_id, cd.name as card_name, cd.start_date, cd.end_date, 
+                cd.status as card_status, b.board_id, b.name as board_name, 
+                w.workspace_id, w.name as workspace_name,
+				(SELECT JSON_ARRAYAGG(
+					   JSON_OBJECT(
+						   'user_id', u.user_id, 
+						   'name', u.name,
+						   'email', u.email,
+						   'avatar', u.avatar
+						   )
+					) 
+				 FROM `user` u
+				 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = cd.card_id)) > 0
+				 ) as 'userjoin'
+		FROM card cd
+		LEFT JOIN `column` cl ON cl.column_id = cd.column_id
+		LEFT JOIN `board` b ON b.board_id = cl.board_id
+		LEFT JOIN `workspace` w ON w.workspace_id = b.workspace_id
+		LEFT JOIN `member` m ON m.workspace_id = b.workspace_id
+		LEFT JOIN `guest` g ON g.board_id = b.board_id
+		WHERE 
+			(g.user_id = p_user_id AND g.role = 'own') 
+			OR (m.user_id = p_user_id AND m.role = 'own');
+    ELSE
+        SET p_error_code = 1;
+        SET p_error_message = 'Invalid time range. Use "month" or "week".';
+    END IF;
+
+    COMMIT;
+END$$
+DELIMITER ;
+
+-- thủ tục thống kê số lượng công việc trong 1 tuần
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetCardInWeek`(
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		SELECT
+			DATE(end_date) AS date,
+			COUNT(DISTINCT card_id) AS card_count
+		FROM 
+			card
+		WHERE 
+			(WEEK(end_date, 1) = WEEK(CURDATE(), 1)
+			AND YEAR(end_date) = YEAR(CURDATE()))
+			AND (FIND_IN_SET(p_user_id, user_id_join))
+		GROUP BY 
+			DATE(end_date)
+		ORDER BY 
+			DATE(end_date);
+    commit;
+end$$
+DELIMITER ;
+
+
+
+
+use datn;
+
+call GetCardEndDate(18, 'allcard', @err, @msg);
+call GetCardEndDate(18, 'mycard', @err, @msg);
+
+call GetCard(13, 'mycard', @err, @msg);
+call GetCard(13, 'allcard', @err, @msg);
+
+call GetCardInWeek(13, @err, @msg);
+
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetBoardById`(
+in p_board_id int,
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		SELECT 
+		b.board_id,
+        b.workspace_id,
+		b.name,
+		b.description,
+		b.background,
+        b.status,
+        g.role,
+        g.permission,
+		b.column_id_order,
+		(SELECT JSON_ARRAYAGG(
+			   JSON_OBJECT('column_id', sorted_columns.column_id, 
+							'name', sorted_columns.name, 
+                            'background', sorted_columns.background,
+                            'status', sorted_columns.status,
+							'card',
+									(SELECT JSON_ARRAYAGG(
+										   JSON_OBJECT('card_id', sorted_cards.card_id, 
+														'name', sorted_cards.name,
+                                                        'background', sorted_cards.background, 
+                                                        'status', sorted_cards.status,
+                                                        'userjoin',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'user_id', u.user_id, 
+																   'name', u.name,
+																   'email', u.email,
+																   'avatar', u.avatar
+																   )
+															) 
+														 FROM `user` u
+														 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = sorted_cards.card_id)) > 0
+                                                         ),
+                                                         'label',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'label_id', l.label_id, 
+																   'name', lb.name,
+																   'background', lb.background
+																   )
+															) 
+														 FROM `label` l
+                                                         JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
+														 WHERE l.card_id = sorted_cards.card_id
+                                                         )
+										   )
+									   ) 
+									FROM (
+										SELECT 
+											cd.card_id, 
+											cd.name,
+                                            cd.background,
+                                            cd.status,
+											FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) AS order_value
+										FROM `card` cd
+										RIGHT JOIN `column` cl ON cl.column_id = cd.column_id
+										WHERE FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) > 0
+										ORDER BY order_value
+										) AS sorted_cards
+									)
+			   )
+		   ) 
+		FROM (
+			SELECT 
+				cl.column_id, 
+				cl.name,
+                cl.background,
+                cl.status,
+				FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) AS order_value
+			FROM `column` cl
+			RIGHT JOIN `board` bd ON bd.board_id = cl.board_id
+			WHERE FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) > 0
+			ORDER BY order_value
+			) AS sorted_columns
+		) AS `column`,
+		(SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                   'user_id', g.user_id, 
+                   'name', u.name,
+                   'email', u.email,
+                   'avatar', u.avatar,
+                   'status', u.status,
+                   'role', g.role
+				   )
+			   ) 
+		 FROM `guest` g
+		 LEFT JOIN `user` u ON g.user_id = u.user_id
+		 WHERE g.board_id = b.board_id
+		) AS `guest`
+	FROM 
+		`board` b
+	LEFT JOIN 
+        `Member` m ON b.workspace_id = m.workspace_id AND m.user_id = p_user_id
+    LEFT JOIN 
+        `Guest` g ON g.board_id = b.board_id AND g.user_id = p_user_id
+	WHERE 
+        (
+			b.status = 'public'
+			OR 
+			(b.status = 'workspace' AND (m.user_id = p_user_id or g.user_id = p_user_id))
+			OR 
+			(b.status = 'private' AND g.user_id = p_user_id)
+        )
+        AND b.board_id = p_board_id;
+	commit;
+end$$
+DELIMITER ;
+
+
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetBoardById`(
+in p_board_id int,
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		SELECT 
+		b.board_id,
+        b.workspace_id,
+		b.name,
+		b.description,
+		b.background,
+        b.status,
+        g.role,
+        g.permission,
+		b.column_id_order,
+		(SELECT JSON_ARRAYAGG(
+			   JSON_OBJECT('column_id', sorted_columns.column_id, 
+							'name', sorted_columns.name, 
+                            'background', sorted_columns.background,
+                            'status', sorted_columns.status,
+							'card',
+									(SELECT JSON_ARRAYAGG(
+										   JSON_OBJECT('card_id', sorted_cards.card_id, 
+														'name', sorted_cards.name,
+                                                        'background', sorted_cards.background, 
+                                                        'status', sorted_cards.status,
+                                                        'start_date', sorted_cards.start_date,
+                                                        'end_date', sorted_cards.end_date,
+                                                        'userjoin',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'user_id', u.user_id, 
+																   'name', u.name,
+																   'email', u.email,
+																   'avatar', u.avatar
+																   )
+															) 
+														 FROM `user` u
+														 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = sorted_cards.card_id)) > 0
+                                                         ),
+                                                         'label',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'label_id', l.label_id, 
+																   'name', lb.name,
+																   'background', lb.background
+																   )
+															) 
+														 FROM `label` l
+                                                         JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
+														 WHERE l.card_id = sorted_cards.card_id
+                                                         )
+										   )
+									   ) 
+									FROM (
+										SELECT 
+											cd.card_id, 
+											cd.name,
+                                            cd.background,
+                                            cd.status,
+                                            cd.start_date,
+                                            cd.end_date,
+											FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) AS order_value
+										FROM `card` cd
+										RIGHT JOIN `column` cl ON cl.column_id = cd.column_id
+										WHERE FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) > 0
+										ORDER BY order_value
+										) AS sorted_cards
+									)
+			   )
+		   ) 
+		FROM (
+			SELECT 
+				cl.column_id, 
+				cl.name,
+                cl.background,
+                cl.status,
+				FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) AS order_value
+			FROM `column` cl
+			RIGHT JOIN `board` bd ON bd.board_id = cl.board_id
+			WHERE FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) > 0
+			ORDER BY order_value
+			) AS sorted_columns
+		) AS `column`,
+		(SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                   'user_id', g.user_id, 
+                   'name', u.name,
+                   'email', u.email,
+                   'avatar', u.avatar,
+                   'status', u.status,
+                   'role', g.role
+				   )
+			   ) 
+		 FROM `guest` g
+		 LEFT JOIN `user` u ON g.user_id = u.user_id
+		 WHERE g.board_id = b.board_id
+		) AS `guest`
+	FROM 
+		`board` b
+	LEFT JOIN 
+        `Member` m ON b.workspace_id = m.workspace_id AND m.user_id = p_user_id
+    LEFT JOIN 
+        `Guest` g ON g.board_id = b.board_id AND g.user_id = p_user_id
+	WHERE 
+        (
+			b.status = 'public'
+			OR 
+			(b.status = 'workspace' AND (m.user_id = p_user_id or g.user_id = p_user_id))
+			OR 
+			(b.status = 'private' AND g.user_id = p_user_id)
+        )
+        AND b.board_id = p_board_id;
+	commit;
+end$$
+DELIMITER ;
+
+
+
+-- thủ tục tìm kiếm
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetSearch`(
+in p_search varchar(100),
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	DECLARE workspace_result JSON;
+	DECLARE board_result JSON;
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'workspace_id', w.workspace_id, 
+                'name', w.name,
+                'logo', w.logo
+            )
+        ) INTO workspace_result
+        FROM workspace w
+		INNER JOIN member m ON m.workspace_id = w.workspace_id
+		WHERE w.name LIKE CONCAT('%', p_search, '%') AND m.user_id = p_user_id;
+
+    SELECT JSON_ARRAYAGG(
+		JSON_OBJECT(
+			'board_id', board_id, 
+			'workspace_id', workspace_id,
+			'workspace_name', workspace_name,
+			'board_name', board_name,
+			'background', background
+		)
+	) INTO board_result
+	FROM (
+		SELECT DISTINCT
+			b.board_id, 
+			b.workspace_id,
+			w.name AS workspace_name,
+			b.name AS board_name,
+			b.background
+		FROM board b
+		INNER JOIN workspace w ON w.workspace_id = b.workspace_id
+		INNER JOIN member m ON m.workspace_id = w.workspace_id
+		INNER JOIN guest g ON g.board_id = b.board_id
+		WHERE b.name LIKE CONCAT('%', p_search, '%')
+		  AND (
+				b.status = 'public'
+				OR (b.status = 'workspace' AND (m.user_id = p_user_id OR g.user_id = p_user_id))
+				OR (b.status = 'private' AND (m.role = 'own' OR g.user_id = p_user_id))
+			)
+	) subquery;
+
+
+        SELECT workspace_result AS workspace, board_result AS board;
+    commit;
+end$$
+DELIMITER ;
+
+
+call GetSearch('d', 13, @err, @msg);
+
+
+use datn;
+
+-- sửa thủ tục thêm khách
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateGuest`(
+in p_board_id int,
+in p_user_id int,
+in p_role varchar(100),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		insert into `guest`(
+        board_id,
+        user_id,
+        role
+        )
+        value(
+		p_board_id,
+        p_user_id,
+        p_role
+        );
+        select user_id, name, email, avatar, status from `user` where user_id = p_user_id;
+	commit;
+end$$
+DELIMITER ;
+
+use datn;
+
+-- thủ tục cập nhật quyền khách
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateRoleGuest`(
+in p_board_id int,
+in p_user_id int,
+in p_role varchar(100),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		update `guest`
+		set
+		`role` = p_role
+		where `board_id` = p_board_id and `user_id` = p_user_id;
+	commit;
+end$$
+DELIMITER ;
+
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `DeleteGuest`(
+in p_board_id int,
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		delete from `guest` where board_id = p_board_id and user_id = p_user_id;
+	commit;
+end$$
+DELIMITER ;
 
 
 

@@ -11,7 +11,7 @@ const App: React.FC = () => {
   const { id } = useParams();
   const [card, setCard] = useState<any[]>([])
   const [column, setColumnData] = useState<any[]>([])
-  const {setCheckUpdateColumn, handleToggleModal, fetchCardById} = useOutletContext<{setCheckUpdateColumn: any, handleToggleModal: any, fetchCardById: any}>();
+  const { setCheckUpdateColumn, handleToggleModal, fetchCardById } = useOutletContext<{ setCheckUpdateColumn: any, handleToggleModal: any, fetchCardById: any }>();
   const [updateDate, setUpdateDate] = useState(false);
 
   const fetchData = async () => {
@@ -51,13 +51,13 @@ const App: React.FC = () => {
           itemLayout="horizontal"
           dataSource={card}
           renderItem={(item, index) => (
-            <ListItem 
-            item={item} 
-            column={column} 
-            setCheckUpdateColumn={setCheckUpdateColumn} 
-            handleToggleModal={handleToggleModal} 
-            fetchCardById={fetchCardById} 
-            setUpdateDate={setUpdateDate}/>
+            <ListItem
+              item={item}
+              column={column}
+              setCheckUpdateColumn={setCheckUpdateColumn}
+              handleToggleModal={handleToggleModal}
+              fetchCardById={fetchCardById}
+              setUpdateDate={setUpdateDate} />
           )}
 
         />

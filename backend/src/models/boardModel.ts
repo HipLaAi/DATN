@@ -8,4 +8,5 @@ export interface BoardModel {
     status?: string;
 
     user_id?: number;
+    role?: string;
 }

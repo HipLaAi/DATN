@@ -4,7 +4,7 @@ import { CardModel } from "../models/cardModel";
 
 @injectable()
 export class CardService {
-    constructor(private cardReponsitory: CardReponsitory) {};
+    constructor(private cardReponsitory: CardReponsitory) { };
 
     async createCard(card: CardModel): Promise<any> {
         return this.cardReponsitory.createCard(card);
@@ -48,5 +48,17 @@ export class CardService {
 
     async getCardByUser(id: string): Promise<any> {
         return this.cardReponsitory.getCardByUser(id);
+    }
+
+    async getCardEndDate(user_id: string, option: string): Promise<any> {
+        return this.cardReponsitory.getCardEndDate(user_id, option);
+    }
+
+    async getCard(user_id: string, option: string): Promise<any> {
+        return this.cardReponsitory.getCard(user_id, option);
+    }
+
+    async getCardInWeek(user_id: string): Promise<any> {
+        return this.cardReponsitory.getCardInWeek(user_id);
     }
 }

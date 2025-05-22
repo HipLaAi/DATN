@@ -55,7 +55,7 @@ export class CardReponsitory {
             throw new Error(error.message);
         }
     }
-    
+
     async deleteCard(id: string): Promise<any> {
         try {
             const sql = 'call DeleteCard(?, @err_code, @err_msg)';
@@ -173,6 +173,51 @@ export class CardReponsitory {
                 return results;
             }
             return true;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
+
+    async getCardEndDate(user_id: string, option: string): Promise<any> {
+        try {
+            const sql = 'call GetCardEndDate(?, ?, @err_code, @err_msg)';
+            const [results] = await this.db.query(sql, [user_id, option]);
+
+            if (Array.isArray(results) && results.length > 0) {
+                return results;
+            }
+
+            return null;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
+
+    async getCard(user_id: string, option: string): Promise<any> {
+        try {
+            const sql = 'call GetCard(?, ?, @err_code, @err_msg)';
+            const [results] = await this.db.query(sql, [user_id, option]);
+
+            if (Array.isArray(results) && results.length > 0) {
+                return results;
+            }
+
+            return null;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
+
+    async getCardInWeek(user_id: string): Promise<any> {
+        try {
+            const sql = 'call GetCardInWeek(?, @err_code, @err_msg)';
+            const [results] = await this.db.query(sql, [user_id]);
+
+            if (Array.isArray(results) && results.length > 0) {
+                return results;
+            }
+
+            return null;
         } catch (error: any) {
             throw new Error(error.message);
         }

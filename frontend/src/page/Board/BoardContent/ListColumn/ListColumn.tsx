@@ -15,6 +15,7 @@ interface Props {
 }
 
 const ListColumn: React.FC<Props> = ({ columns }) => {
+  const { board, setting } = useOutletContext<{ board: any, setting: any }>();
   const [openNewColumnform, setOpenNewColumnFomr] = useState(false);
   const { createNewColumn } = useOutletContext<{ createNewColumn: any }>()
   const [title, setTitle] = useState<string | "">("")
@@ -32,6 +33,8 @@ const ListColumn: React.FC<Props> = ({ columns }) => {
     setTitle("");
     inputRef.current?.focus();
   }
+
+
   return (
     <>
       <SortableContext items={columns.map(column => column?.column_id) ?? []} strategy={horizontalListSortingStrategy}>
@@ -67,7 +70,20 @@ const ListColumn: React.FC<Props> = ({ columns }) => {
                     <CloseOutlined onClick={toggleOpenNewColumnForm} />
                   </Flex>
                 </Flex>)
-                : <Button onClick={toggleOpenNewColumnForm}>+ Thêm danh sách khác</Button>
+                : (
+                  setting?.map((item: any) => {
+                    if (item?.action === "create") {
+                      const hasPermission =
+                        item.permission === "all guest" ||
+                        (item.permission === "just admin" && board?.role === "own");
+
+                      return hasPermission ? (
+                        <Button onClick={toggleOpenNewColumnForm}>+ Thêm danh sách khác</Button>
+                      ) : null;
+                    }
+                    return null;
+                  })
+                )
               }
             </Flex>
           </Col>

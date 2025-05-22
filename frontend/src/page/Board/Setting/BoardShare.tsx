@@ -1,95 +1,69 @@
-import React from "react";
+import React, { useState } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
-import { Button } from "antd";
+import { Button, Flex } from "antd";
+import { useParams } from "react-router-dom";
+import { getBoarByIdAPI } from "../../../services/Board/board.sevice";
+import MindMap from "../BoardContent/MindMap/MindMap";
+import { useDispatch } from "react-redux";
+import { exportReload } from "../../../features/reloadSlice";
 
 const ExportComponent: React.FC = () => {
-  // Dữ liệu mẫu
-  const tasks = [
-    { ID: 1, Title: "Công việc 1", Status: "Cần làm" },
-    { ID: 2, Title: "Công việc 2", Status: "Đang làm" },
-    { ID: 3, Title: "Công việc 3", Status: "Đã hoàn thành" },
-  ];
+  const { id } = useParams();
+  const dispatch = useDispatch();
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Chưa cài thời gian";
+    return new Intl.DateTimeFormat('en-GB', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(date)).replace(",", "");
+  };
 
   // Xuất Excel
-  const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(tasks);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Tasks");
-    XLSX.writeFile(workbook, "DanhSachCongViec.xlsx");
+  const exportToExcel = async () => {
+    const response = await getBoarByIdAPI(id);
+    if (response?.column && response?.column.length > 0) {
+
+      const flatData = response?.column.flatMap((col: any) =>
+        col?.card.map((card: any) => ({
+          "Nhiệm vụ": card.name,
+          "Danh sách": col.name,
+          "Nhãn": card.label
+            ? card.label.map((lbl: any) => lbl.name).join(", ")
+            : "Không có nhãn",
+          "Người tham gia": card.userjoin
+            ? card.userjoin.map((user: any) => user.email).join(", ")
+            : "Không có ai tham gia",
+          "Ngày bắt đầu": card.start_date ? formatDate(card.start_date) : "Không có thời gian bắt đầu",
+          "Ngày kết thúc": card.end_date ? formatDate(card.end_date) : "Không có thời gian kết thúc",
+        }))
+      );
+      const worksheet = XLSX.utils.json_to_sheet(flatData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, response?.name);
+      XLSX.writeFile(workbook, response?.name + ".xlsx");
+    } else {
+      console.warn("Không có dữ liệu để xuất Excel");
+    }
   };
 
-  // Xuất PDF từ HTML
+
+  // Xuất PDF
   const exportHTMLToPDF = async () => {
-    const element = document.getElementById("workTable");
-    if (!element) return;
-
-    // Đảm bảo phần tử đã có kích thước đầy đủ trước khi chụp
-    element.style.visibility = "visible"; // Đảm bảo phần tử hiển thị
-    const canvas = await html2canvas(element, {
-      scrollX: 0,
-      scrollY: -window.scrollY, // Đảm bảo chụp chính xác vị trí của phần tử
-      windowWidth: document.documentElement.scrollWidth,
-      windowHeight: document.documentElement.scrollHeight,
-    });
-
-    const imgData = canvas.toDataURL("image/png");
-
-    const pdf = new jsPDF();
-    pdf.addImage(imgData, "PNG", 10, 10, 190, 0); // Điều chỉnh kích thước ảnh
-    pdf.save("DanhSachCongViec.pdf");
+    dispatch(exportReload());
   };
 
-  // Xuất PDF từ dữ liệu
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    doc.text("Danh sách công việc", 10, 10);
-
-    tasks.forEach((task, index) => {
-      doc.text(`${index + 1}. ${task.Title} - ${task.Status}`, 10, 20 + index * 10);
-    });
-
-    doc.save("DanhSachCongViec.pdf");
-  };
 
   return (
-    <div>
-      {/* Phần HTML để xuất ra PDF */}
-      <div
-        id="workTable"
-        style={{
-          visibility: "hidden", // Đảm bảo phần tử không hiển thị trên giao diện
-          marginTop: "20px",
-          maxWidth: "100%",
-        }}
-      >
-        <h1>Danh sách công việc</h1>
-        <table border={1}>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Title</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.map((task) => (
-              <tr key={task.ID}>
-                <td>{task.ID}</td>
-                <td>{task.Title}</td>
-                <td>{task.Status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Các nút để xuất file */}
-      <Button onClick={exportToExcel}>Xuất Excel</Button>
-      <Button onClick={exportToPDF}>Xuất PDF từ dữ liệu</Button>
-      <Button onClick={exportHTMLToPDF}>Xuất PDF từ HTML</Button>
-    </div>
+    <Flex vertical gap={10}>
+      <Button type="primary" onClick={exportToExcel}>Xuất Excel</Button>
+      <Button danger type="primary" onClick={exportHTMLToPDF}>Xuất PDF từ HTML</Button>
+    </Flex>
   );
 };
 

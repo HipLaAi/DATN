@@ -7,6 +7,8 @@ import { Board } from "../../../../model/BoardModel";
 import { URL } from '../../../../utils/url';
 import { useDispatch } from "react-redux";
 import { boardReload } from "../../../../features/reloadSlice";
+import { getSettingWorkspaceAPI } from "../../../../services/Setting/settingWorkspace.service";
+import { getWorkSpacedByIdAPI } from "../../../../services/WorkSpace/workSapce.service";
 
 const ModalCreateBoard = (props: any) => {
   const [logo, setLogo] = useState<File | null>(null);
@@ -14,6 +16,22 @@ const ModalCreateBoard = (props: any) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
+  const [setting, setSetting] = useState<any>();
+  const [data, setData] = useState<any>()
+
+  // Call API lấy setting workspace
+  const getSettingWorkspace = async () => {
+    if (props.idWorkspace) {
+      const results = await getSettingWorkspaceAPI(props.idWorkspace);
+      setSetting(results);
+    }
+  }
+
+  // Gọi API lấy thông tin không gian làm việc
+  const fetchWorkSpaceDetails = async () => {
+    const reponse = await getWorkSpacedByIdAPI(props.idWorkspace)
+    setData(reponse)
+  }
 
   const onFinish: FormProps<Board>['onFinish'] = async () => {
     form
@@ -48,6 +66,7 @@ const ModalCreateBoard = (props: any) => {
         setLoading(false);
       });
   }
+  
   const handleSubmit = () => {
     form.submit();
   };
@@ -56,10 +75,67 @@ const ModalCreateBoard = (props: any) => {
     if (props.isOpenModal) {
       form.resetFields();
       setLogo(null);
-      form.setFieldsValue({ status: 'workspace' });
+      // form.setFieldsValue({ status: 'workspace' });
+      getSettingWorkspace();
+      fetchWorkSpaceDetails();
     }
   }, [props.isOpenModal]);
 
+  const actionButton = setting?.setting
+    ?.filter((item: any) => item.action === "createboard")
+    ?.flatMap((item: any) =>
+      Object.entries(item.permission).map(([key, value]) => {
+        if (key === "public") {
+          if (value === "all member") {
+            return { value: "public", label: "Công khai" };
+          }
+          if (value === "no one") {
+            return null;
+          }
+          if (value === "just admin" && data?.role === "own") {
+            return { value: "public", label: "Công khai" };
+          }
+        }
+        if (key === "workspace") {
+          if (value === "all member") {
+            return { value: "workspace", label: "Không gian làm việc" };
+          }
+          if (value === "no one") {
+            return null;
+          }
+          if (value === "just admin" && data?.role === "own") {
+            return { value: "workspace", label: "Không gian làm việc" };
+          }
+        }
+        if (key === "private") {
+          if (value === "all member") {
+            return { value: "private", label: "Riêng tư" };
+          }
+          if (value === "no one") {
+            return null;
+          }
+          if (value === "just admin" && data?.role === "own") {
+            return { value: "private", label: "Riêng tư" };
+          }
+        }
+        return null;
+      }).filter(Boolean)
+    )?.length > 0 ? (
+    <Button
+      key="submit"
+      type="primary"
+      icon={loading ? <LoadingOutlined spin /> : <></>}
+      onClick={handleSubmit}
+      disabled={loading}
+      style={{ float: "right" }}
+    >
+      Tạo
+    </Button>
+  ) : (
+    <Button key="submit" type="primary" disabled style={{ float: "right" }}>
+      Tạo
+    </Button>
+  );
 
   return (
     <>
@@ -74,16 +150,7 @@ const ModalCreateBoard = (props: any) => {
         }}
         footer={[
           <Button key="cancel" onClick={props.handleCancel}>Hủy</Button>,
-          <Button
-            key="submit"
-            type="primary"
-            icon={loading ? <LoadingOutlined spin /> : <></>}
-            onClick={handleSubmit}
-            disabled={loading}
-            style={{ float: 'right' }}
-          >
-            Tạo
-          </Button>,
+          actionButton,
         ]}
       >
         <Form
@@ -101,20 +168,151 @@ const ModalCreateBoard = (props: any) => {
           >
             <Input placeholder='Tên bảng' />
           </Form.Item>
-          <Form.Item<Board>
+
+          {/* <Form.Item<Board>
             name="status"
-            rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
+            rules={[{ required: true, message: "Vui lòng chọn trạng thái!" }]}
           >
             <Select
               placeholder="Chọn trạng thái"
-              defaultValue="workspace"
-              options={[
-                { value: 'private', label: 'Riêng tư' },
-                { value: 'workspace', label: 'Không gian làm việc' },
-                { value: 'public', label: 'Công khai' },
-              ]}
+              // defaultValue="workspace"
+              options={setting?.setting
+                ?.filter((item: any) => item.action === "createboard")
+                ?.flatMap((item: any) =>
+                  Object.entries(item.permission).map(([key, value]) => {
+                    if (key === "public") {
+                      if (value === "all member") {
+                        return { value: "public", label: "Công khai" };
+                      }
+                      if (value === "no one") {
+                        return null;
+                      }
+                      if (value === "just admin" && data?.role == "own") {
+                        return { value: "public", label: "Công khai" };
+                      }
+                    }
+                    if (key === "workspace") {
+                      if (value === "all member") {
+                        return { value: "workspace", label: "Không gian làm việc" };
+                      }
+                      if (value === "no one") {
+                        return null;
+                      }
+                      if (value === "just admin" && data?.role == "own") {
+                        return { value: "workspace", label: "Không gian làm việc" };
+                      }
+                    }
+                    if (key === "private") {
+                      if (value === "all member") {
+                        return { value: "private", label: "Riêng tư" };
+                      }
+                      if (value === "no one") {
+                        return null;
+                      }
+                      if (value === "just admin" && data?.role == "own") {
+                        return { value: "private", label: "Riêng tư" };
+                      }
+                    }
+                    return null;
+                  }).filter(Boolean)
+                )}
             />
+          </Form.Item> */}
+          <Form.Item<Board>
+            name="status"
+            rules={[{ required: true, message: "Vui lòng chọn trạng thái!" }]}
+          >
+            {setting?.setting
+              ?.filter((item: any) => item.action === "createboard")
+              ?.flatMap((item: any) =>
+                Object.entries(item.permission).map(([key, value]) => {
+                  if (key === "public") {
+                    if (value === "all member") {
+                      return { value: "public", label: "Công khai" };
+                    }
+                    if (value === "no one") {
+                      return null;
+                    }
+                    if (value === "just admin" && data?.role === "own") {
+                      return { value: "public", label: "Công khai" };
+                    }
+                  }
+                  if (key === "workspace") {
+                    if (value === "all member") {
+                      return { value: "workspace", label: "Không gian làm việc" };
+                    }
+                    if (value === "no one") {
+                      return null;
+                    }
+                    if (value === "just admin" && data?.role === "own") {
+                      return { value: "workspace", label: "Không gian làm việc" };
+                    }
+                  }
+                  if (key === "private") {
+                    if (value === "all member") {
+                      return { value: "private", label: "Riêng tư" };
+                    }
+                    if (value === "no one") {
+                      return null;
+                    }
+                    if (value === "just admin" && data?.role === "own") {
+                      return { value: "private", label: "Riêng tư" };
+                    }
+                  }
+                  return null;
+                }).filter(Boolean)
+              ).length > 0 ? (
+              <Select
+                placeholder="Chọn trạng thái"
+                options={setting?.setting
+                  ?.filter((item: any) => item.action === "createboard")
+                  ?.flatMap((item: any) =>
+                    Object.entries(item.permission).map(([key, value]) => {
+                      if (key === "public") {
+                        if (value === "all member") {
+                          return { value: "public", label: "Công khai" };
+                        }
+                        if (value === "no one") {
+                          return null;
+                        }
+                        if (value === "just admin" && data?.role === "own") {
+                          return { value: "public", label: "Công khai" };
+                        }
+                      }
+                      if (key === "workspace") {
+                        if (value === "all member") {
+                          return { value: "workspace", label: "Không gian làm việc" };
+                        }
+                        if (value === "no one") {
+                          return null;
+                        }
+                        if (value === "just admin" && data?.role === "own") {
+                          return { value: "workspace", label: "Không gian làm việc" };
+                        }
+                      }
+                      if (key === "private") {
+                        if (value === "all member") {
+                          return { value: "private", label: "Riêng tư" };
+                        }
+                        if (value === "no one") {
+                          return null;
+                        }
+                        if (value === "just admin" && data?.role === "own") {
+                          return { value: "private", label: "Riêng tư" };
+                        }
+                      }
+                      return null;
+                    }).filter(Boolean)
+                  )}
+              />
+            ) : (
+              <div style={{ color: "red", marginTop: "8px" }}>
+                Bạn không có quyền tạo các bảng mới trong Không gian làm việc này. Liên hệ với quản trị viên của bạn để được giúp đỡ.
+              </div>
+            )}
           </Form.Item>
+
+
 
           <Form.Item<Board>
             name="background"

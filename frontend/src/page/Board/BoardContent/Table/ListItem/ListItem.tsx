@@ -37,8 +37,6 @@ const ListItem = (props: any) => {
     props.fetchCardById(cardId)
   }
 
-  console.log(dayjs('2024-12-20 14:20:39', dateFormat))
-
   return (
     <>
       <List.Item>

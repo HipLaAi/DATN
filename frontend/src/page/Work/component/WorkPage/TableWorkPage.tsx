@@ -60,7 +60,11 @@ const TableWorkPage = () => {
               </Flex>
             </Flex>
             <div className={cx('middle-main')}>
-              <Button style={{ height: "100%" }} onClick={showModal}>Tạo bảng</Button>
+              {data?.role === "own" || data?.role === "member" ? (
+                <Button style={{ height: "100%" }} onClick={showModal}>Tạo bảng</Button>
+              ) : (
+                <></>
+              )}
               {
                 data?.board && data.board.length > 0
                   ? data.board.map((item: any, index: any) => (

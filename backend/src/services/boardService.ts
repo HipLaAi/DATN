@@ -40,4 +40,8 @@ export class BoardService {
     async deleteGuest(board: BoardModel): Promise<any> {
         return this.boardReponsitory.deleteGuest(board);
     }
+
+    async updateRoleGuest(board: BoardModel): Promise<any> {
+        return this.boardReponsitory.updateRoleGuest(board);
+    }
 }

@@ -1,20 +1,20 @@
 import { useDebounce } from '@uidotdev/usehooks';
-import { Avatar, Flex, Input, List, Modal, Spin, Typography, Tag, Button } from 'antd';
+import { Avatar, Flex, Input, List, Modal, Spin, Typography, Tag, Button, Select } from 'antd';
 import { useEffect, useState } from 'react';
-import { search } from '../../../services/User/user.service';
-import { useParams } from 'react-router-dom';
-import { createGuestdAPI } from '../../../services/Board/board.sevice';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 const ModalCreateGuest = (props: any) => {
     const [searchEmail, setSearchEmail] = useState<string>("");
     const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
     const debouncedSearch = useDebounce(searchEmail, 500);
+    const [selectedRole, setSelectedRole] = useState<any>("guest");
 
     useEffect(() => {
         if (debouncedSearch.length > 2) {
             props.fetchSearchUser(debouncedSearch);
+            console.log(props?.data);
         }
     }, [debouncedSearch]);
 
@@ -64,11 +64,20 @@ const ModalCreateGuest = (props: any) => {
                             value={searchEmail}
                             onChange={(e) => setSearchEmail(e.target.value)}
                         />
+                        <Select
+                            placeholder="Chọn quyền"
+                            style={{ width: "150px" }}
+                            value={selectedRole}
+                            onChange={(value) => setSelectedRole(value)}
+                            defaultValue={["guest"]}
+                        >
+                            <Option value="own">Quản trị viên</Option>
+                            <Option value="guest">Thành viên</Option>
+                        </Select>
                         {
-                            (selectedUsers.length > 0) && <Button type='primary' onClick={() => props.handleCreateMember(selectedUsers)}>Mời</Button>
+                            (selectedUsers.length > 0) && <Button type='primary' onClick={() => props.handleCreateMember(selectedUsers, selectedRole)}>Mời</Button>
                         }
                     </Flex>
-
 
                     {!props.loading ? (
                         debouncedSearch.length > 2 && (
@@ -76,19 +85,35 @@ const ModalCreateGuest = (props: any) => {
                                 style={{ width: "100%" }}
                                 itemLayout="horizontal"
                                 dataSource={props.data}
-                                renderItem={(item: any) => (
-                                    <List.Item onClick={() => handleItemClick(item)} style={{ cursor: 'pointer' }}>
-                                        <Flex align='center' gap="10px">
-                                            <Avatar src={item.avatar.replace("D:\\DA4\\frontend\\", "")} />
-                                            <Text strong>{item.name}</Text>
-                                        </Flex>
-                                    </List.Item>
-                                )}
+                                renderItem={(item: any) => {
+                                    const isGuest = props?.guest?.some((guest: any) => guest?.user_id === item?.user_id);
+                                    return (
+                                        <>
+                                            {isGuest ? (
+                                                <List.Item style={{ cursor: 'not-allowed' }} title="Đã tham gia vào bảng">
+                                                    <Flex align='center' gap="10px">
+                                                        <Avatar src={item.avatar} />
+                                                        <Text strong>{item.name}</Text>
+                                                    </Flex>
+                                                </List.Item>
+                                            ) : (
+                                                <List.Item onClick={() => handleItemClick(item)} style={{ cursor: 'pointer' }}>
+                                                    <Flex align='center' gap="10px">
+                                                        <Avatar src={item.avatar} />
+                                                        <Text strong>{item.name}</Text>
+                                                    </Flex>
+                                                </List.Item>
+                                            )}
+                                        </>
+                                    );
+                                }}
                             />
                         )
                     ) : (
                         <Spin style={{ marginTop: "10px" }} />
                     )}
+
+
                 </Flex>
             </Modal>
         </>

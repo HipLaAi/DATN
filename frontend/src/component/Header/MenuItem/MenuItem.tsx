@@ -7,6 +7,7 @@ import { mockData } from "../../../api/mock-data";
 import { FiMoreVertical } from "react-icons/fi";
 import { IoSearchOutline } from "react-icons/io5";
 import { URL } from "../../../utils/url";
+import { logout } from "../../../services/User/user.service";
 
 const { Text, Title } = Typography
 
@@ -337,6 +338,14 @@ export const chatMenuItems = (data: any[], action: (converSation: any) => void):
   })),
 ]
 
+const handleLogout = async () => {
+  localStorage.clear();
+  window.location.href = URL.AUTH.LOGIN;
+  await logout();
+};
+
+
+
 export const userMenuItem: MenuProps["items"] = [
   {
     label: <>
@@ -354,7 +363,10 @@ export const userMenuItem: MenuProps["items"] = [
         }}
         vertical
       >
-        <Link to={URL.LOGIN}>
+        <Link to={URL.AUTH.LOGIN}
+          onClick={() => {
+            handleLogout();
+          }}>
           <Text>Đăng xuất </Text>
         </Link>
       </Flex>

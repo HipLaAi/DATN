@@ -10,7 +10,7 @@ const userController = container.resolve(UserController);
 const uploadMiddleware = container.resolve(UploadMiddleware);
 
 userRouter.post(
-    '/register', uploadMiddleware.Upload,
+    '/register',
     userController.register.bind(userController)
 );
 
@@ -35,4 +35,44 @@ userRouter.post(
     userController.search.bind(userController)
 );
 
+
+userRouter.get(
+    '/getusergrowthrate/:month',
+    authenticate,
+    userController.getUserGrowthRate.bind(userController)
+);
+
+userRouter.get(
+    '/getnewuser/:month',
+    authenticate,
+    userController.getNewUser.bind(userController)
+);
+
+userRouter.get(
+    '/getactivityuser',
+    authenticate,
+    userController.getActivityUser.bind(userController)
+);
+
+userRouter.get(
+    '/getalluser',
+    authenticate,
+    userController.getAllUser.bind(userController)
+);
+
+userRouter.get(
+    '/getactivityuserbyrange/:range',
+    authenticate,
+    userController.getActivityUserByRange.bind(userController)
+);
+
+userRouter.post(
+    '/sendverificationemail',
+    userController.sendVerificationEmail.bind(userController)
+);
+
+userRouter.post(
+    '/logout',
+    userController.logout.bind(userController)
+);
 export default userRouter;

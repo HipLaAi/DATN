@@ -1,7 +1,7 @@
 import { createGuestdAPI, getBoarByIdAPI, updateBoarDetailsdAPI } from "../../services/Board/board.sevice";
 import BoardBar from "./BoardBar/BoardBar";
 import { Outlet, useOutletContext, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Col, Row } from "antd";
 import { Board } from "../../model/BoardModel";
 import { createColumndAPI, deleteColumndAPI, updateColumndAPI } from "../../services/Column/Column.service";
@@ -166,6 +166,7 @@ const BoardDetials = () => {
         isModalOpen={toggleModel}
         cardData={cardData}
         handleToggleModal={handleToggleModal}
+        setting={setting}
       />
       <BoardBar
         setting={setting}
@@ -184,6 +185,7 @@ const BoardDetials = () => {
       }}>
         <Col span={23} >
           <Outlet context={{
+            setting: setting,
             board: board,
             boardFilter: boardFilter,
             fetchCardById: fetchCardById,

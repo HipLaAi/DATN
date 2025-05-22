@@ -195,4 +195,19 @@ export class WorkspaceReponsitory {
             throw new Error(error.message);
         }
     }
+
+    async getSearch(search: string, userID: string): Promise<any> {
+        try {
+            const sql = 'call GetSearch(?, ?, @err_code, @err_msg)';
+            const [results] = await this.db.query(sql, [search, userID]);
+
+            if (Array.isArray(results) && results.length > 0) {
+                return results[0];
+            }
+
+            return null;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
 }

@@ -36,7 +36,7 @@ const ACTIVE_ITEM_TYPE = {
 };
 
 const BoardContent: React.FC = () => {
-  const { board, moveCard, boardFilter } = useOutletContext<{ board: Board, moveCard: any, boardFilter: any }>();
+  const { board, moveCard, boardFilter, setting } = useOutletContext<{ board: any, moveCard: any, boardFilter: any, setting: any }>();
   const [sortedColumn, setSortedColumn] = useState<ColumnModel[]>([]);
   const [dragItemType, setDragItemType] = useState<string | null>(null);
   const [dragItemId, setDragItemId] = useState<ColumnModel["column_id"] | CardModel["card_id"] | null>(null);
@@ -252,16 +252,52 @@ const BoardContent: React.FC = () => {
   }, [dragItemType, sortedColumn])
 
 
-
   return (
     <>
       <Outlet />
-      <DndContext
+      {/* <DndContext
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         sensors={sensor}
         collisionDetection={collisionDetectionStrategy}
+      > */}
+      <DndContext
+        sensors={sensor}
+        collisionDetection={collisionDetectionStrategy}
+        onDragStart={
+          setting?.some((item: any) =>
+            item.action === "move" &&
+            (
+              (item.permission === "just admin" && board?.role === "own") ||
+              item.permission === "all guest"
+            )
+          )
+            ? handleDragStart
+            : undefined
+        }
+        onDragOver={
+          setting?.some((item: any) =>
+            item.action === "move" &&
+            (
+              (item.permission === "just admin" && board?.role === "own") ||
+              item.permission === "all guest"
+            )
+          )
+            ? handleDragOver
+            : undefined
+        }
+        onDragEnd={
+          setting?.some((item: any) =>
+            item.action === "move" &&
+            (
+              (item.permission === "just admin" && board?.role === "own") ||
+              item.permission === "all guest"
+            )
+          )
+            ? handleDragEnd
+            : undefined
+        }
       >
         <div className={cx('board-content')}>
           <ListColumn columns={sortedColumn} />

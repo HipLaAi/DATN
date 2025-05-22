@@ -100,7 +100,6 @@ const Work = () => {
     dispatch(boardReload());
   }
 
-
   // Hàm để cập nhật thông tin không gian làm việc
   const handleSaveInformation = () => {
     if (!data?.name) {
@@ -156,14 +155,20 @@ const Work = () => {
               <div style={{ width: "450px" }}>
                 <div className={cx("user")}>
                   {
-                    isEditing ? <></> : (
-                      <>
-                        <AvatarUpload
-                          initialImage={data?.logo}
-                          onImageChange={handleImageChange}
-                          disabled={isUploading}
-                        />
-                      </>
+                    isEditing ? (
+                      <></>
+                    ) : data?.role === "own" ? (
+                      <AvatarUpload
+                        initialImage={data?.logo}
+                        onImageChange={handleImageChange}
+                        disabled={isUploading}
+                      />
+                    ) : (
+                      <Avatar
+                        size={65}
+                        shape="square"
+                        src={data?.logo}
+                      />
                     )
                   }
                   <div className={cx("user-profile")}>
@@ -217,7 +222,40 @@ const Work = () => {
                 }
 
               </div>
-              <Button type="primary" onClick={handleToggleModal}><IoPersonAddOutline />Mời các thành viên vào không gian làm việc</Button>
+
+              {/* {
+                setting?.setting?.map((item: any) => (
+                  (item?.action == "invitemember" && item?.permission?.status == "all member") ? (
+                    <Button type="primary" onClick={handleToggleModal}><IoPersonAddOutline />Mời các thành viên vào không gian làm việc</Button>
+
+                  ) : (<></>)
+                )
+                )
+              } */}
+
+              {
+                setting?.setting?.map((item: any) => {
+                  if (item?.action === "invitemember") {
+                    if (item?.permission?.status === "all member") {
+                      return (
+                        <Button type="primary" onClick={handleToggleModal}>
+                          <IoPersonAddOutline />
+                          Mời các thành viên vào không gian làm việc
+                        </Button>
+                      );
+                    } else if (item?.permission?.status === "just admin" && data?.role === "own") {
+                      return (
+                        <Button type="primary" onClick={handleToggleModal}>
+                          <IoPersonAddOutline />
+                          Mời các thành viên vào không gian làm việc
+                        </Button>
+                      );
+                    }
+                  }
+                  return null;
+                })
+              }
+
             </div>
           </Col>
         </Row>

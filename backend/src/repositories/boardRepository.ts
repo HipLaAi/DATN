@@ -125,10 +125,11 @@ export class BoardReponsitory {
 
     async createGuest(board: BoardModel): Promise<any> {
         try {
-            const sql = 'call CreateGuest(?, ?, @err_code, @err_msg)';
+            const sql = 'call CreateGuest(?, ?, ?,  @err_code, @err_msg)';
             const [results] = await this.db.query(sql, [
                 board.board_id,
                 board.user_id,
+                board.role,
             ]);
 
             if (Array.isArray(results) && results.length > 0) {
@@ -165,6 +166,21 @@ export class BoardReponsitory {
             await this.db.query(sql, [
                 board.board_id,
                 board.user_id
+            ]);
+
+            return true;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
+
+    async updateRoleGuest(board: BoardModel): Promise<any> {
+        try {
+            const sql = 'call UpdateRoleGuest(?, ?, ?, @err_code, @err_msg)';
+            await this.db.query(sql, [
+                board.board_id,
+                board.user_id,
+                board.role,
             ]);
 
             return true;

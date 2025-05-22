@@ -37,7 +37,7 @@ const Column: React.FC<Props> = ({ column }) => {
     opacity: isDragging ? 0.5 : undefined,
     height: '100%',
   };
-  const { createNewCard, deleteColumn } = useOutletContext<{ createNewCard: any, deleteColumn:any }>()
+  const { createNewCard, deleteColumn, board, setting } = useOutletContext<{ createNewCard: any, deleteColumn: any, setting: any, board: any }>()
   const [openNewCardform, setOpenNewCardForm] = useState(false)
   const [cardName, setCardName] = useState<string | "">("")
   const inputRef = useRef<InputRef>(null)
@@ -54,7 +54,7 @@ const Column: React.FC<Props> = ({ column }) => {
     setCardName("")
     inputRef.current?.focus()
   }
-  const handleDeleteColumn = (columnId:string)=> {
+  const handleDeleteColumn = (columnId: string) => {
     deleteColumn(columnId)
   }
   return (
@@ -62,7 +62,7 @@ const Column: React.FC<Props> = ({ column }) => {
       <div ref={setNodeRef}  {...attributes} style={style}>
         <div className={cx('column')} {...listeners}>
           <Flex justify='space-between' align='center' style={{ marginBottom: "5px" }}>
-            <Input value={column?.name} data-no-dnd="true" className={cx("column-title")} spellCheck={false}/>
+            <Input value={column?.name} data-no-dnd="true" className={cx("column-title")} spellCheck={false} />
             <CustomPop title="" content={
               <>
                 <Menu
@@ -93,9 +93,32 @@ const Column: React.FC<Props> = ({ column }) => {
                           icon: <DeleteOutlined />,
                           label:
                             <>
-                              <Flex style={{width:"100%"}}>
-                                <Text style={{width:"100%"}} onClick={()=>handleDeleteColumn(column.column_id)}>Xóa cột</Text>
-                              </Flex>
+                              {
+                                (
+                                  setting?.map((item: any) => {
+                                    if (item?.action === "delete") {
+                                      const hasPermission =
+                                        item.permission === "all guest" ||
+                                        (item.permission === "just admin" && board?.role === "own");
+
+                                      return hasPermission ? (
+                                        <>
+                                          <Flex style={{ width: "100%" }}>
+                                            <Text style={{ width: "100%" }} onClick={() => handleDeleteColumn(column.column_id)}>Xóa cột</Text>
+                                          </Flex>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Flex style={{ width: "100%" }}>
+                                            <Text style={{ width: "100" }} disabled title="Quyền bị hạn chế">Xóa cột</Text>
+                                          </Flex>
+                                        </>
+                                      );
+                                    }
+                                    return null;
+                                  })
+                                )
+                              }
                             </>,
                         }
                       ]
@@ -114,10 +137,23 @@ const Column: React.FC<Props> = ({ column }) => {
           <div className={cx('column-action')}>
             {
               !openNewCardform
-                ? (<>
-                  <Button iconPosition='start' type='text' icon={<IoMdAdd />} onClick={toggleOpenNewCardForm}>Thêm thẻ</Button>
-                  <Button type='text' icon={<TbCopy />} />
-                </>)
+                ? (
+                  setting?.map((item: any) => {
+                    if (item?.action === "create") {
+                      const hasPermission =
+                        item.permission === "all guest" ||
+                        (item.permission === "just admin" && board?.role === "own");
+
+                      return hasPermission ? (
+                        <>
+                          <Button iconPosition='start' type='text' icon={<IoMdAdd />} onClick={toggleOpenNewCardForm}>Thêm thẻ</Button>
+                          <Button type='text' icon={<TbCopy />} />
+                        </>
+                      ) : null;
+                    }
+                    return null;
+                  })
+                )
                 : (<Flex gap="10px" justify='center' align='center'>
                   <Input
                     ref={inputRef}

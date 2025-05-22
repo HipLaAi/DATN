@@ -4,7 +4,7 @@ import { UserReponsitory } from "../repositories/userRepository";
 
 @injectable()
 export class UserService {
-    constructor(private userReponsitory: UserReponsitory) {};
+    constructor(private userReponsitory: UserReponsitory) { };
 
     async register(user: UserModel): Promise<any> {
         await hashPassword(user);
@@ -28,21 +28,25 @@ export class UserService {
     async googleLogin(payload: any): Promise<any> {
         const user = await this.userReponsitory.getUserByEmail(payload.email);
         if (user) {
-            return {
-                user_id: user[0].user_id,
-                name: user[0].name,
-                email: user[0].email,
-                avatar: user[0].avatar
-            };
+            if (user[0].password == '') {
+                return {
+                    user_id: user[0].user_id,
+                    name: user[0].name,
+                    email: user[0].email,
+                    avatar: user[0].avatar
+                };
+            } else {
+                return false;
+            }
         }
-    
-        const newUser : UserModel = {
+
+        const newUser: UserModel = {
             name: payload.name,
             email: payload.email,
             avatar: payload.picture,
             password: ''
         };
-    
+
         const created = await this.userReponsitory.createUser(newUser);
         return {
             user_id: created.user_id,
@@ -51,8 +55,28 @@ export class UserService {
             avatar: created.avatar
         };
     }
-    
+
     async search(email: string): Promise<any> {
         return this.userReponsitory.getUserByEmail(email);
+    }
+
+    async getUserGrowthRate(month: number): Promise<any> {
+        return this.userReponsitory.getUserGrowthRate(month);
+    }
+
+    async getNewUser(month: number): Promise<any> {
+        return this.userReponsitory.getNewUser(month);
+    }
+
+    async getActivityUser(): Promise<any> {
+        return this.userReponsitory.getActivityUser();
+    }
+
+    async getAllUser(): Promise<any> {
+        return this.userReponsitory.getAllUser();
+    }
+
+    async getActivityUserByRange(range: string): Promise<any> {
+        return this.userReponsitory.getActivityUserByRange(range);
     }
 }

@@ -6,6 +6,7 @@ const initialState = {
   memberReload: false,
   boardDetailReload: false,
   cardDetailReload: false,
+  exportReload: false,
 };
 
 const reloadSlice = createSlice({
@@ -27,6 +28,9 @@ const reloadSlice = createSlice({
     cardDetailReload(state) {
       state.cardDetailReload = !state.cardDetailReload;
     },
+    exportReload(state) {
+      state.exportReload = !state.exportReload;
+    },
   },
 });
 
@@ -36,6 +40,7 @@ export const {
   memberReload,
   boardDetailReload,
   cardDetailReload,
+  exportReload
 } = reloadSlice.actions;
 
 export default reloadSlice.reducer;

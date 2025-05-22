@@ -1,4 +1,4 @@
-import { Button, Col, Modal, Row, Typography, Input, Divider, Avatar, List, Checkbox, Flex, Menu, Upload, Space, Progress, Radio } from 'antd';
+import { Button, Col, Modal, Row, Typography, Input, Divider, Avatar, List, Checkbox, Flex, Menu, Upload, Space, Progress, Radio, DatePicker, TimePicker } from 'antd';
 import styles from './CardDialog.module.scss';
 import classNames from "classnames/bind";
 import { useEffect, useState } from 'react';
@@ -10,8 +10,15 @@ import {
     CheckSquareOutlined,
     ClockCircleOutlined,
     CloseOutlined,
+    CloudUploadOutlined,
     DeleteOutlined,
     EditOutlined,
+    ExclamationCircleFilled,
+    FileExcelOutlined,
+    FileImageOutlined,
+    FileOutlined,
+    FilePdfOutlined,
+    FileWordOutlined,
     LikeOutlined,
     LinkOutlined,
     MinusOutlined,
@@ -27,17 +34,17 @@ import CustomPop from './../PopConfirm/PopConfirm';
 import { createCheckListAPI, createCheckListNameAPI, deleteCheckListAPI, deleteCheckListNameAPI, updateCheckListAPI } from '../../services/CheckList/CheckList.service';
 import { createFileAPI, deleteFileAPI } from '../../services/File/File.sevice';
 import { deleteCardByIdAPI, updateInformationCard, updateUserJoinCardAPI, updateUserOutCardAPI } from '../../services/Card/Card.service';
-import { toast } from 'react-toastify';
+import { toast, ToastOptions } from 'react-toastify';
 import { useParams } from 'react-router-dom';
 import { createLabelAPI, deleteLabelAPI, getLabelBoardAPI } from '../../services/Label/LabelBoard.service';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import decodeJWT from '../../services/Auth/auth.service ';
 import { getSettingCardAPI, updateSettingCardAPI } from '../../services/Setting/settingCard.service';
 import React from 'react';
-import { values } from 'lodash';
-import { createCommentAPI, deleteCommentAPI, updateCommentAPI } from '../../services/Comment/comment.services';
 import dayjs from "dayjs";
-import { createActivityLogAPI, getActivityCardAPI } from '../../services/ActivityLog/ActivityLog.service';
+import { createActivityCardAPI, getActivityCardAPI } from '../../services/ActivityLog/ActivityLog.service';
+import { createCommentAPI, deleteCommentAPI, updateCommentAPI } from '../../services/Comment/Comment.services';
+import { boardDetailReload } from '../../features/reloadSlice';
 
 const cx = classNames.bind(styles);
 
@@ -65,6 +72,10 @@ const CardDialog = (props: any) => {
     const [activitylog, setActivityLog] = useState<any>();
     const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
     const [editedComment, setEditedComment] = useState<string>("");
+    const [loadingUpload, setLoadingUpload] = useState(false);
+    const [loadingFileId, setLoadingFileId] = useState(null); // Theo dõi file đang xóa
+    const { confirm } = Modal;
+
     const filteredGuests = props?.board?.guest?.filter(
         (guest: any) => !data?.userjoin?.some((user: any) => user.user_id === guest.user_id)
     );
@@ -82,24 +93,66 @@ const CardDialog = (props: any) => {
         }
     }, []);
 
+    const handleNotification = (message: string, status: "success" | "error") => {
+        const toastOptions: ToastOptions = {
+            toastId: message,
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
+        };
+
+        const toastActions = {
+            success: () => toast.success(message, toastOptions),
+            error: () => toast.error(message, toastOptions),
+        };
+
+        toastActions[status]?.();
+    };
+
     // Hàm xử lý upload file
     const handleUploadChange = async (info: any) => {
+        const isLt50MB = info.size / 1024 / 1024 < 50;
+        if (!isLt50MB) {
+            handleNotification("File phải nhỏ hơn 50MB!", "error");
+            return;
+        }
         // Lấy danh sách file từ event
         const formData = new FormData()
         // const { fileList } = info;
 
         // Cập nhật state
-        setUploadedFiles(info);
+        // setUploadedFiles(info);
 
         // Log danh sách file nếu cần
         if (info && typeof info != "string") {
             formData.append("files", info)
             formData.append("card_id", data.card_id)
         }
-        const responese = await createFileAPI(formData)
-        const newData = { ...data }
-        newData.file.push(responese)
-        setData(newData)
+        setLoadingUpload(true)
+        try {
+            const responese = await createFileAPI(formData);
+            const newData = { ...data };
+
+            // Kiểm tra và khởi tạo `file` nếu chưa tồn tại hoặc không phải là mảng
+            newData.file = Array.isArray(newData.file) ? newData.file : [];
+
+            // Thêm file mới vào mảng
+            newData.file.unshift(responese);
+
+            // Cập nhật state và hiển thị thông báo
+            setData(newData);
+            handleNotification("Tải file thành công.", "success");
+        } catch (error) {
+            handleNotification("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
+            console.log("Fail:", error)
+        } finally {
+            setLoadingUpload(false)
+        }
+
     };
 
     // hàm cập nhật mô tả thẻ
@@ -119,6 +172,7 @@ const CardDialog = (props: any) => {
         setCheckListName("")
         setData(newData)
         handelCreateActivity("đã thêm danh sách công việc " + checkListName + " vào thẻ này")
+        handleNotification("Tạo thành công.", "success");
     }
 
     //Hàm tạo danh sách công việc
@@ -138,6 +192,7 @@ const CardDialog = (props: any) => {
         const newData = { ...data }
         const checklistToDelete = data.checklistname.find((item: any) => item.checklistname_id === id);
         handelCreateActivity(`đã xóa danh sách công việc "${checklistToDelete.name}" của thẻ này`);
+        handleNotification("Xóa thành công.", "success");
         newData.checklistname = newData.checklistname.filter((c: any) => c.checklistname_id != id)
         setData(newData)
         await deleteCheckListNameAPI(id)
@@ -149,7 +204,7 @@ const CardDialog = (props: any) => {
         const checkListNameIndex = newData.checklistname.findIndex((c: any) => c.checklistname_id == idCheckListName)
         newData.checklistname[checkListNameIndex].checklist = newData.checklistname[checkListNameIndex].checklist.filter((i: any) => i.checklist_id != idCheckList)
         setData(newData)
-
+        handleNotification("Xóa thành công.", "success");
         await deleteCheckListAPI(idCheckList)
     }
 
@@ -210,6 +265,23 @@ const CardDialog = (props: any) => {
         props.handleToggleModal();
     }
 
+    //Hàm show xác nhận xóa
+    const showDeleteConfirm = () => {
+        confirm({
+            title: 'Bạn có chắc chắn muốn xóa thẻ này?',
+            icon: <ExclamationCircleFilled />,
+            content: 'Hành động này không thể hoàn tác. Tất cả dữ liệu sẽ bị xóa vĩnh viễn.',
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk() {
+                handleDelete();
+            },
+            onCancel() {
+            },
+        });
+    }
+
     // Hàm cập nhật trạng thái công việc 
     const handleUpdateCheckList = async (id: any, user_id: any, name: any, timer: any, status: any) => {
 
@@ -228,10 +300,19 @@ const CardDialog = (props: any) => {
     }
 
     const handleDeleteFile = async (id: any) => {
-        await deleteFileAPI(id);
-        const newData = { ...data }
-        newData.file = newData.file.filter((file: any) => file.file_id != id)
-        setData(newData)
+        setLoadingFileId(id);
+        try {
+            await deleteFileAPI(id);
+            const newData = { ...data }
+            newData.file = newData.file.filter((file: any) => file.file_id != id)
+            setData(newData)
+            handleNotification("Xóa File thành công!", "success");
+        } catch (error) {
+            handleNotification("Đã !", "error");
+        } finally {
+            setLoadingFileId(null)
+        }
+
     }
 
     const handleCreateComment = async () => {
@@ -393,7 +474,7 @@ const CardDialog = (props: any) => {
     // Hàm ghi hoạt động
     const handelCreateActivity = async (description: any) => {
         try {
-            const response = await createActivityLogAPI({
+            const response = await createActivityCardAPI({
                 user_id: userId,
                 card_id: cardData?.card_id,
                 description: description
@@ -474,25 +555,79 @@ const CardDialog = (props: any) => {
                                     itemLayout="horizontal"
                                     dataSource={data?.file}
                                     renderItem={(i: any) => (
+
                                         <List.Item className={cx('listwork')}>
-                                            <Upload
-                                                defaultFileList={[
-                                                    {
-                                                        uid: i.file_id,
-                                                        name: i.path.replace("D:\\DA4\\frontend\\src\\assets\\uploads\\", ""),
-                                                        status: 'done',
-                                                        url: i.path.replace("D:\\DA4\\frontend\\", ""),
-                                                    }
-                                                ]}
-                                                showUploadList={{
-                                                    showPreviewIcon: false,
-                                                    showRemoveIcon: false,
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '10px',
+                                                    pointerEvents: loadingFileId === i.file_id ? 'none' : 'auto', // Vô hiệu hóa khi đang xóa
+                                                    opacity: loadingFileId === i.file_id ? 0.5 : 1, // Làm mờ khi đang xóa
                                                 }}
-                                                onPreview={(file) => {
-                                                    window.open(file.url, '_blank');
-                                                }}
-                                            />
-                                            <Button type='text' shape='circle' onClick={() => handleDeleteFile(i.file_id)}><DeleteOutlined /></Button>
+                                            >
+                                                {i.path && (
+                                                    <Flex gap={10}>
+                                                        {i.path.includes('.pdf') ? (
+                                                            <>
+                                                                <FilePdfOutlined style={{ fontSize: "18px", color: "red" }} />
+                                                                <a
+                                                                // href={i.path}
+                                                                // download={i.path}
+                                                                // target="_blank"
+                                                                >
+                                                                    {i?.path.split('/').pop()}
+                                                                </a>
+                                                            </>
+                                                        ) : i.path.includes('.xlsx') || i.path.includes('.xls') ? (
+                                                            <>
+                                                                <FileExcelOutlined style={{ fontSize: "18px", color: "green" }} />
+                                                                <a
+                                                                    href={i.path}
+                                                                    download={i.path}
+                                                                // target="_blank"
+                                                                >
+                                                                    {i?.path.split('/').pop()}
+                                                                </a>
+                                                            </>
+                                                        ) : i.path.includes('.docx') || i.path.includes('.doc') ? (
+                                                            <>
+                                                                <FileWordOutlined style={{ fontSize: "18px", color: "blue" }} />
+                                                                <a
+                                                                    href={i.path}
+                                                                    download={i.path}
+                                                                // target="_blank"
+                                                                >
+                                                                    {i?.path.split('/').pop()}
+                                                                </a>
+                                                            </>
+                                                        ) : i.path.includes('.jpg') || i.path.includes('.jpeg') || i.path.includes('.png') ? (
+                                                            <>
+                                                                <FileImageOutlined style={{ fontSize: "18px", color: "orange" }} />
+                                                                <a
+                                                                    href={i.path}
+                                                                    download={i.path}
+                                                                    target="_blank"
+                                                                >
+                                                                    {i?.path.split('/').pop()}
+                                                                </a>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <FileOutlined style={{ fontSize: "18px", color: "gray" }} />
+                                                                <a
+                                                                    // href={i.path}
+                                                                    download={i.path}
+                                                                // target="_blank"
+                                                                >
+                                                                    {i?.path.split('/').pop()}
+                                                                </a>
+                                                            </>
+                                                        )}
+                                                    </Flex>
+                                                )}
+                                                <Button type='text' shape='circle' onClick={() => handleDeleteFile(i.file_id)}><DeleteOutlined /></Button>
+                                            </div>
                                         </List.Item>
                                     )}
                                 />
@@ -500,7 +635,6 @@ const CardDialog = (props: any) => {
                             )
 
                         }
-
                         {
                             data.checklistname?.length > 0 && (
                                 <>
@@ -531,7 +665,31 @@ const CardDialog = (props: any) => {
                                                                     renderItem={(i: any) => (
                                                                         <List.Item className={cx('listwork')}>
                                                                             <div>
-                                                                                <Checkbox checked={JSON.parse(i.status)} onClick={() => handleUpdateCheckList(i.checklist_id, i.user_id, i.name, i.timer, i.status === "true" ? "false" : "true")} />
+                                                                                {
+                                                                                    (
+                                                                                        setting?.map((item: any) => {
+                                                                                            const isUserJoined = data.userjoin?.some((u: any) => u.user_id === userId);
+                                                                                            const isUserCheck = (i.user_id === userId);
+                                                                                            if (item?.action === "checklist") {
+                                                                                                const hasPermission =
+                                                                                                    item.permission === "all guest" ||
+                                                                                                    (item.permission === "just admin" && (props?.board?.role === "own" || isUserCheck)) ||
+                                                                                                    (item.permission === "card member" && (isUserJoined || props?.board?.role === "own"));
+
+                                                                                                return hasPermission ? (
+                                                                                                    <>
+                                                                                                        <Checkbox checked={JSON.parse(i.status)} onClick={() => handleUpdateCheckList(i.checklist_id, i.user_id, i.name, i.timer, i.status === "true" ? "false" : "true")} />
+                                                                                                    </>
+                                                                                                ) : (
+                                                                                                    <>
+                                                                                                        <Checkbox disabled title="Quyền bị hạn chế" checked={JSON.parse(i.status)} />
+                                                                                                    </>
+                                                                                                );
+                                                                                            }
+                                                                                            return null;
+                                                                                        })
+                                                                                    )
+                                                                                }
                                                                                 <span style={{ marginLeft: '10px' }}>{i.name}</span>
                                                                             </div>
 
@@ -611,8 +769,66 @@ const CardDialog = (props: any) => {
                                                                                     </div>
                                                                                 ) : (
                                                                                     <div className={cx('listwork-button-hidden')}>
-                                                                                        <Button icon={<ClockCircleOutlined />} onClick={handleOpenModal}></Button>
+                                                                                        {/* Thời gian */}
+                                                                                        {/* <CustomPop title={
+                                                                                            <>
+                                                                                                <Flex justify='center'>
+                                                                                                    Thời gian
+                                                                                                </Flex>
+                                                                                            </>
+                                                                                        } content={
+                                                                                            <>
 
+                                                                                                <Flex vertical gap={10}>
+                                                                                                    <DatePicker
+                                                                                                        // value={endDate ? dayjs(endDate) : null}
+                                                                                                        // onChange={(date) => {
+                                                                                                        //     if (date) {
+                                                                                                        //         setEndDate((prev) => {
+                                                                                                        //             const prevDayjs = prev ? dayjs(prev) : dayjs();
+                                                                                                        //             return dayjs(date)
+                                                                                                        //                 .set("hour", prevDayjs.hour())
+                                                                                                        //                 .set("minute", prevDayjs.minute())
+                                                                                                        //                 .set("second", 0);
+                                                                                                        //         });
+                                                                                                        //     } else {
+                                                                                                        //         setEndDate(null);
+                                                                                                        //     }
+                                                                                                        // }}
+                                                                                                        inputReadOnly={true}
+                                                                                                    />
+                                                                                                    <TimePicker
+                                                                                                        // value={endDate ? dayjs(endDate) : null}
+                                                                                                        // onChange={(time) => {
+                                                                                                        //     if (time) {
+                                                                                                        //         setEndDate((prev) => {
+                                                                                                        //             const currentDate = prev ? dayjs(prev) : dayjs();
+                                                                                                        //             return currentDate
+                                                                                                        //                 .set("hour", time.hour())
+                                                                                                        //                 .set("minute", time.minute())
+                                                                                                        //                 .set("second", 0);
+                                                                                                        //         });
+                                                                                                        //     }
+                                                                                                        // }}
+                                                                                                        format="HH:mm"
+                                                                                                        showNow={false}
+                                                                                                        minuteStep={1}
+                                                                                                        popupClassName="no-seconds-picker"
+                                                                                                        inputReadOnly={true}
+                                                                                                        hideDisabledOptions
+                                                                                                    />
+
+
+                                                                                                    <Button type="primary">
+                                                                                                        Lưu
+                                                                                                    </Button>
+                                                                                                </Flex>
+                                                                                            </>
+                                                                                        }>
+                                                                                            <Button icon={<ClockCircleOutlined />}></Button>
+                                                                                        </CustomPop> */}
+
+                                                                                        {/* Người tham gia */}
                                                                                         <CustomPop title={
                                                                                             <>
                                                                                                 <Flex justify='center'>
@@ -668,6 +884,7 @@ const CardDialog = (props: any) => {
                                                                                             <Button icon={<UserAddOutlined />}></Button>
                                                                                         </CustomPop>
 
+                                                                                        {/* Xóa */}
                                                                                         <Button icon={<DeleteOutlined />} onClick={() => handleDeleteCheckList(i.checklist_id, item.checklistname_id)}></Button>
                                                                                     </div>)
                                                                             }
@@ -695,14 +912,42 @@ const CardDialog = (props: any) => {
                         {/* Hoạt động */}
                         <div>
                             <Title level={5}>Hoạt động</Title>
-                            <Input
-                                spellCheck={false}
-                                value={comment}
-                                placeholder="Viết bình luận..."
-                                prefix={<Avatar src={userAvatar} />}
-                                onChange={(e) => setComment(e.target.value)}
-                                onPressEnter={handleCreateComment}
-                            />
+                            {
+                                (
+                                    props?.setting?.map((item: any) => {
+                                        if (item?.action === "comment") {
+                                            const hasPermission =
+                                                item.permission === "all guest" ||
+                                                (item.permission === "just admin" && props?.board?.role === "own");
+
+                                            return hasPermission ? (
+                                                <>
+                                                    <Input
+                                                        spellCheck={false}
+                                                        value={comment}
+                                                        placeholder="Viết bình luận..."
+                                                        prefix={<Avatar src={userAvatar} />}
+                                                        onChange={(e) => setComment(e.target.value)}
+                                                        onPressEnter={handleCreateComment}
+                                                    />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Input
+                                                        title="Quyền bị hạn chế"
+                                                        spellCheck={false}
+                                                        disabled
+                                                        placeholder="Viết bình luận..."
+                                                        prefix={<Avatar src={userAvatar} />}
+                                                    />
+                                                </>
+                                            );
+                                        }
+                                        return null;
+                                    })
+                                )
+                            }
+
                             {
                                 data.comment?.length > 0 && (
                                     <>
@@ -817,265 +1062,440 @@ const CardDialog = (props: any) => {
 
                     {/* Phần bên phải */}
                     <Col span={8}>
+
+                        {/* Tham gia vào thẻ */}
                         {
-                            data.userjoin?.find((u: any) => u.user_id == userId) ? (
-                                <Button block icon={<UserAddOutlined />} onClick={() => handleUseOutCard(userId)} className={cx("button")}>Rời đi</Button>
+                            setting?.map((item: any) => {
+                                if (item?.action === "invite") {
+                                    const isUserJoined = data.userjoin?.some((u: any) => u.user_id === userId);
+
+                                    if (isUserJoined) {
+                                        return (
+                                            <Button
+                                                block
+                                                icon={<UserAddOutlined />}
+                                                onClick={() => handleUseOutCard(userId)}
+                                                className={cx("button")}
+                                            >
+                                                Rời đi
+                                            </Button>
+                                        );
+                                    }
+
+                                    const hasPermission =
+                                        item.permission === "all guest" ||
+                                        (item.permission === "just admin" && props?.board?.role === "own");
+
+                                    if (hasPermission) {
+                                        return (
+                                            <Button
+                                                block
+                                                icon={<UserAddOutlined />}
+                                                onClick={() => handleUseJoinCard(userId)}
+                                                className={cx("button")}
+                                            >
+                                                Tham gia
+                                            </Button>
+                                        );
+                                    }
+                                }
+                                return null;
+                            })
+                        }
+
+
+                        {/* Thành viên */}
+                        {
+                            props?.board?.role === "own" ? (
+                                <CustomPop title={
+                                    <>
+                                        <Flex justify='center'>
+                                            Thành viên
+                                        </Flex>
+                                    </>
+                                } content={
+                                    <>
+                                        <Flex vertical gap="10px">
+                                            <Input style={{ width: "100%" }} placeholder='Tìm kiếm thành viên trong nhóm' />
+                                            <Menu
+                                                style={{ width: 256 }}
+                                                defaultSelectedKeys={['1']}
+                                                defaultOpenKeys={['sub1']}
+                                                mode="inline"
+                                                items={[
+                                                    {
+                                                        key: 'grp',
+                                                        label: <Text strong>Thành viên trong thẻ</Text>,
+                                                        type: 'group',
+                                                        children: data?.userjoin?.map((item: any, index: any) => ({
+                                                            key: `userjoin-${index}`,
+                                                            label: <>
+                                                                <Flex gap={8} style={{ justifyContent: "space-between", alignItems: "center" }}>
+                                                                    <Avatar src={item?.avatar?.replace("D:\\DA4\\frontend\\", "")} />
+                                                                    <Text>{item.name}</Text>
+                                                                    <Button type='text' shape='circle' onClick={() => handleUseOutCard(item.user_id)}><UserDeleteOutlined /></Button>
+                                                                </Flex>
+                                                            </>
+
+                                                        })),
+                                                    },
+                                                    {
+                                                        key: 'grp',
+                                                        label: <Text strong>Thành viên trong bảng</Text>,
+                                                        type: 'group',
+                                                        children: filteredGuests?.map((item: any, index: any) => ({
+                                                            key: `guestjoin-${index}`,
+                                                            label: <>
+                                                                <Flex gap={8} style={{ justifyContent: "space-between", alignItems: "center" }}>
+                                                                    <Avatar src={item?.avatar?.replace("D:\\DA4\\frontend\\", "")} />
+                                                                    <Text>{item.name}</Text>
+                                                                    <Button type='text' shape='circle' onClick={() => handleUseJoinCard(item.user_id)}><UserAddOutlined /></Button>
+                                                                </Flex>
+                                                            </>
+                                                        }))
+                                                    },
+                                                ]}
+                                            />
+                                        </Flex>
+                                    </>
+                                }>
+                                    <Button block icon={<UserOutlined />} className={cx("button")}>
+                                        Thành viên
+                                    </Button>
+                                </CustomPop>
                             ) : (
-                                <Button block icon={<UserAddOutlined />} onClick={() => handleUseJoinCard(userId)} className={cx("button")}>Tham gia</Button>
+                                <></>
                             )
                         }
 
-                        {/* Thành viên */}
-                        <CustomPop title={
-                            <>
-                                <Flex justify='center'>
-                                    Thành viên
-                                </Flex>
-                            </>
-                        } content={
-                            <>
-                                <Flex vertical gap="10px">
-                                    <Input style={{ width: "100%" }} placeholder='Tìm kiếm thành viên trong nhóm' />
-                                    <Menu
-                                        style={{ width: 256 }}
-                                        defaultSelectedKeys={['1']}
-                                        defaultOpenKeys={['sub1']}
-                                        mode="inline"
-                                        items={[
-                                            {
-                                                key: 'grp',
-                                                label: <Text strong>Thành viên trong thẻ</Text>,
-                                                type: 'group',
-                                                children: data?.userjoin?.map((item: any, index: any) => ({
-                                                    key: `userjoin-${index}`,
-                                                    label: <>
-                                                        <Flex gap={8} style={{ justifyContent: "space-between", alignItems: "center" }}>
-                                                            <Avatar src={item?.avatar?.replace("D:\\DA4\\frontend\\", "")} />
-                                                            <Text>{item.name}</Text>
-                                                            <Button type='text' shape='circle' onClick={() => handleUseOutCard(item.user_id)}><UserDeleteOutlined /></Button>
-                                                        </Flex>
-                                                    </>
-
-                                                })),
-                                            },
-                                            {
-                                                key: 'grp',
-                                                label: <Text strong>Thành viên trong bảng</Text>,
-                                                type: 'group',
-                                                children: filteredGuests?.map((item: any, index: any) => ({
-                                                    key: `guestjoin-${index}`,
-                                                    label: <>
-                                                        <Flex gap={8} style={{ justifyContent: "space-between", alignItems: "center" }}>
-                                                            <Avatar src={item?.avatar?.replace("D:\\DA4\\frontend\\", "")} />
-                                                            <Text>{item.name}</Text>
-                                                            <Button type='text' shape='circle' onClick={() => handleUseJoinCard(item.user_id)}><UserAddOutlined /></Button>
-                                                        </Flex>
-                                                    </>
-                                                }))
-                                            },
-                                        ]}
-                                    />
-                                </Flex>
-                            </>
-                        }>
-                            <Button block icon={<UserOutlined />} className={cx("button")}>
-                                Thành viên
-                            </Button>
-                        </CustomPop>
 
                         {/* Check list */}
-                        <CustomPop title={
-                            <>
-                                <Flex justify='center'>
-                                    Việc cần làm
-                                </Flex>
-                            </>
-                        } action={true} content={
-                            <>
-                                <Flex vertical gap="10px" style={{ marginTop: "10px" }}>
-                                    <Text strong>Tiêu đề</Text>
-                                    <Input style={{ width: "300px" }} value={checkListName} onChange={(e) => setCheckListName(e.target.value)} placeholder='Việc cần làm' />
-                                </Flex>
-                            </>
-                        } handleFunction={handleCreateCheckListName}>
-                            <Button block icon={<CheckSquareOutlined />} className={cx("button")}>
-                                Việc cần làm
-                            </Button>
-                        </CustomPop>
+                        {
+                            (
+                                setting?.map((item: any) => {
+                                    const isUserJoined = data.userjoin?.some((u: any) => u.user_id === userId);
+                                    if (item?.action === "handle") {
+                                        const hasPermission =
+                                            item.permission === "all guest" ||
+                                            (item.permission === "just admin" && props?.board?.role === "own") ||
+                                            (item.permission === "card member" && (isUserJoined || props?.board?.role === "own"));
+
+                                        return hasPermission ? (
+                                            <>
+                                                <CustomPop title={
+                                                    <>
+                                                        <Flex justify='center'>
+                                                            Việc cần làm
+                                                        </Flex>
+                                                    </>
+                                                } content={
+                                                    <>
+                                                        <>
+                                                            <Flex vertical gap="10px" style={{ marginTop: "10px" }}>
+                                                                <Text strong>Tiêu đề</Text>
+                                                                <Input required style={{ width: "300px" }} value={checkListName} onChange={(e) => setCheckListName(e.target.value)} placeholder='Việc cần làm' />
+                                                                <Button type="primary" onClick={handleCreateCheckListName}>Tạo</Button>
+                                                            </Flex>
+                                                        </>
+                                                    </>
+                                                }>
+                                                    <Button block icon={<CheckSquareOutlined />} className={cx("button")}>
+                                                        Việc cần làm
+                                                    </Button>
+                                                </CustomPop>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Button block icon={<CheckSquareOutlined />} className={cx("button")} disabled title="Quyền bị hạn chế">
+                                                    Việc cần làm
+                                                </Button>
+                                            </>
+                                        );
+                                    }
+                                    return null;
+                                })
+                            )
+                        }
+
 
                         {/* Ngày */}
-                        <Button block icon={<ClockCircleOutlined />} className={cx("button")} onClick={handleOpenModal}>Ngày</Button>
+                        {
+                            (
+                                setting?.map((item: any) => {
+                                    const isUserJoined = data.userjoin?.some((u: any) => u.user_id === userId);
+                                    if (item?.action === "handle") {
+                                        const hasPermission =
+                                            item.permission === "all guest" ||
+                                            (item.permission === "just admin" && props?.board?.role === "own") ||
+                                            (item.permission === "card member" && (isUserJoined || props?.board?.role === "own"));
+
+                                        return hasPermission ? (
+                                            <>
+                                                <Button block icon={<ClockCircleOutlined />} className={cx("button")} onClick={handleOpenModal}>Ngày</Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Button block icon={<ClockCircleOutlined />} className={cx("button")} disabled title="Quyền bị hạn chế">Ngày</Button>
+                                            </>
+                                        );
+                                    }
+                                    return null;
+                                })
+                            )
+                        }
 
                         {/* File */}
-                        <CustomPop title={
-                            <>
-                                <Flex justify='center'>
-                                    Đính kèm
-                                </Flex>
-                            </>
-                        } content={
-                            <>
-                                <Flex vertical gap="10px" style={{ marginTop: "10px" }}>
-                                    <Text strong>Đính kèm từ máy tính của bạn</Text>
-                                    <Upload
-                                        // onChange={handleUploadChange}
-                                        multiple
-                                        beforeUpload={(file) => {
-                                            handleUploadChange(file);
-                                            return false;
-                                        }}
-                                    >
-                                        <Button icon={<UploadOutlined />}>
-                                            Chọn tệp
-                                        </Button>
-                                    </Upload>
-                                </Flex>
-                            </>
-                        } >
-                            <Button block icon={<LinkOutlined />} className={cx("button")}>
-                                Đính kèm
-                            </Button>
-                        </CustomPop>
+                        {
+                            (
+                                setting?.map((item: any) => {
+                                    const isUserJoined = data.userjoin?.some((u: any) => u.user_id === userId);
+                                    if (item?.action === "handle") {
+                                        const hasPermission =
+                                            item.permission === "all guest" ||
+                                            (item.permission === "just admin" && props?.board?.role === "own") ||
+                                            (item.permission === "card member" && (isUserJoined || props?.board?.role === "own"));
 
-                        {/* Xóa */}
-                        <CustomPop action={true} handleFunction={handleDelete} title={"Xác nhận xóa thẻ"}>
-                            <Button block icon={<MinusOutlined />} className={cx("button")} >Xóa</Button>
-                        </CustomPop>
+                                        return hasPermission ? (
+                                            <>
+                                                <CustomPop title={
+                                                    <>
+                                                        <Flex justify='center'>
+                                                            Đính kèm
+                                                        </Flex>
+                                                    </>
+                                                } content={
+                                                    <>
+                                                        <Flex vertical gap={10}>
+                                                            <Text strong>Đính kèm từ máy tính của bạn</Text>
+                                                            <Upload
+                                                                // multiple
+                                                                beforeUpload={(file) => {
+                                                                    handleUploadChange(file);
+                                                                    return false;
+                                                                }}
+                                                                showUploadList={false}
+                                                            >
+                                                                <Button icon={<CloudUploadOutlined />} style={{ width: "200px" }} loading={loadingUpload}>
+                                                                    Chọn tệp
+                                                                </Button>
+                                                            </Upload>
+                                                        </Flex>
+                                                    </>
+                                                } >
+                                                    <Button block icon={<LinkOutlined />} className={cx("button")}>
+                                                        Đính kèm
+                                                    </Button>
+                                                </CustomPop>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Button block icon={<LinkOutlined />} className={cx("button")} disabled title="Quyền bị hạn chế">
+                                                    Đính kèm
+                                                </Button>
+                                            </>
+                                        );
+                                    }
+                                    return null;
+                                })
+                            )
+                        }
+
+
 
                         {/* Nhãn */}
-                        <CustomPop title={
-                            <>
-                                <Flex justify='center'>
-                                    Nhãn
-                                </Flex>
-                            </>
-                        } content={
-                            <>
-                                <Flex vertical gap={10}>
-                                    {labelBoard?.map((item: any) => {
-                                        const isChecked = data?.label?.some((lb: any) => lb.labelboard_id === item.labelboard_id);
+                        {
+                            (
+                                setting?.map((item: any) => {
+                                    const isUserJoined = data.userjoin?.some((u: any) => u.user_id === userId);
+                                    if (item?.action === "handle") {
+                                        const hasPermission =
+                                            item.permission === "all guest" ||
+                                            (item.permission === "just admin" && props?.board?.role === "own") ||
+                                            (item.permission === "card member" && (isUserJoined || props?.board?.role === "own"));
 
-                                        const handleCheckboxChange = async () => {
-                                            try {
-                                                if (isChecked) {
-                                                    const label = data?.label?.find((lb: any) => lb.labelboard_id === item.labelboard_id);
-                                                    if (label?.label_id) {
-                                                        await handelDeleteLabel(label.label_id);
-                                                    }
-                                                } else {
-                                                    await handelCreateLabel(item.labelboard_id, cardData?.card_id);
-                                                }
-                                            } catch (error) {
-                                                console.error('Checkbox action failed:', error);
-                                            }
-                                        };
+                                        return hasPermission ? (
+                                            <>
+                                                <CustomPop title={
+                                                    <>
+                                                        <Flex justify='center'>
+                                                            Nhãn
+                                                        </Flex>
+                                                    </>
+                                                } content={
+                                                    <>
+                                                        <Flex vertical gap={10}>
+                                                            {labelBoard?.map((item: any) => {
+                                                                const isChecked = data?.label?.some((lb: any) => lb.labelboard_id === item.labelboard_id);
 
-                                        return (
-                                            <Flex gap={10} key={item?.labelboard_id}>
-                                                <Checkbox
-                                                    value={item?.labelboard_id}
-                                                    checked={isChecked}
-                                                    onChange={handleCheckboxChange}
-                                                ></Checkbox>
-                                                <Button
-                                                    type="text"
-                                                    style={{
-                                                        backgroundColor: item?.background,
-                                                        width: "250px",
-                                                    }}
-                                                >
-                                                    <span
-                                                        style={{
-                                                            display: "inline-block",
-                                                            maxWidth: "100%",
-                                                            whiteSpace: "nowrap",
-                                                            overflow: "hidden",
-                                                            textOverflow: "ellipsis",
-                                                            fontWeight: "500",
-                                                            color: "#2a2a2a",
-                                                        }}
-                                                    >
-                                                        {item?.name}
-                                                    </span>
+                                                                const handleCheckboxChange = async () => {
+                                                                    try {
+                                                                        if (isChecked) {
+                                                                            const label = data?.label?.find((lb: any) => lb.labelboard_id === item.labelboard_id);
+                                                                            if (label?.label_id) {
+                                                                                await handelDeleteLabel(label.label_id);
+                                                                            }
+                                                                        } else {
+                                                                            await handelCreateLabel(item.labelboard_id, cardData?.card_id);
+                                                                        }
+                                                                    } catch (error) {
+                                                                        console.error('Checkbox action failed:', error);
+                                                                    }
+                                                                };
+
+                                                                return (
+                                                                    <Flex gap={10} key={item?.labelboard_id}>
+                                                                        <Checkbox
+                                                                            value={item?.labelboard_id}
+                                                                            checked={isChecked}
+                                                                            onChange={handleCheckboxChange}
+                                                                        ></Checkbox>
+                                                                        <Button
+                                                                            type="text"
+                                                                            style={{
+                                                                                backgroundColor: item?.background,
+                                                                                width: "250px",
+                                                                            }}
+                                                                        >
+                                                                            <span
+                                                                                style={{
+                                                                                    display: "inline-block",
+                                                                                    maxWidth: "100%",
+                                                                                    whiteSpace: "nowrap",
+                                                                                    overflow: "hidden",
+                                                                                    textOverflow: "ellipsis",
+                                                                                    fontWeight: "500",
+                                                                                    color: "#2a2a2a",
+                                                                                }}
+                                                                            >
+                                                                                {item?.name}
+                                                                            </span>
+                                                                        </Button>
+                                                                    </Flex>
+                                                                );
+                                                            })}
+                                                        </Flex>
+                                                    </>
+                                                } >
+                                                    <Button block icon={<TagsOutlined />} className={cx("button")}>
+                                                        Nhãn
+                                                    </Button>
+                                                </CustomPop>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Button block icon={<TagsOutlined />} className={cx("button")} disabled title="Quyền bị hạn chế">
+                                                    Nhãn
                                                 </Button>
-                                            </Flex>
+                                            </>
                                         );
-                                    })}
-                                </Flex>
-                            </>
-                        } >
-                            <Button block icon={<TagsOutlined />} className={cx("button")}>
-                                Nhãn
-                            </Button>
-                        </CustomPop>
+                                    }
+                                    return null;
+                                })
+                            )
+                        }
+
+                        {/* Xóa */}
+                        {
+                            (
+                                props?.setting?.map((item: any) => {
+                                    if (item?.action === "delete") {
+                                        const hasPermission =
+                                            item.permission === "all guest" ||
+                                            (item.permission === "just admin" && props?.board?.role === "own");
+
+                                        return hasPermission ? (
+                                            <>
+                                                <Flex style={{ width: "100%" }}>
+                                                    <Button danger style={{ width: "100%" }} onClick={showDeleteConfirm} icon={<MinusOutlined />} className={cx("button")}>Xóa thẻ</Button>
+                                                </Flex>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Flex style={{ width: "100%" }}>
+                                                    <Button style={{ width: "100%" }} disabled title="Quyền bị hạn chế" icon={<MinusOutlined />} className={cx("button")}>Xóa thẻ</Button>
+                                                </Flex>
+                                            </>
+                                        );
+                                    }
+                                    return null;
+                                })
+                            )
+                        }
 
                         {/* Quy tắc */}
-                        <CustomPop
-                            title={
-                                <>
-                                    <Flex justify='center'>
-                                        Quy tắc
-                                    </Flex>
-                                </>
-                            } content={
-                                <>
-                                    <Flex vertical gap={10}>
-                                        <div style={{ width: 320, padding: '8px 0' }}>
-                                            {
-                                                setting?.map((item: any, index: number) => (
-                                                    <React.Fragment key={index}>
-                                                        <Divider style={{ margin: '5px 0' }} />
-                                                        <div style={{ padding: '8px 16px' }}>
-                                                            <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                                                                Ai có thể
-                                                                {item?.action === "invite" && " tham gia vào thẻ"}
-                                                                {item?.action === "handle" && (
-                                                                    <>
-                                                                        &nbsp;thao tác với thẻ <br />
-                                                                        (Việc cần làm, Đính kèm file, Ngày, Nhãn)
-                                                                    </>
-                                                                )}
-                                                                {item?.action === "checklist" && " đánh dấu Việc cần làm"}?
-                                                            </Text>
-                                                            <Radio.Group
-                                                                value={item?.permission}
-                                                                onChange={(e) => updateSetting(item.action, e.target.value)}
-                                                                style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
-                                                            >
-                                                                {item?.action === "invite" && (
-                                                                    <>
-                                                                        <Radio value="all guest">Tất cả thành viên trong bảng</Radio>
-                                                                        <Radio value="just admin">Chỉ khi được các quản trị viên chỉ định</Radio>
-                                                                    </>
-                                                                )}
-                                                                {item?.action === "handle" && (
-                                                                    <>
-                                                                        <Radio value="all guest">Tất cả thành viên trong bảng</Radio>
-                                                                        <Radio value="card member">Chỉ các thành viên tham gia thẻ và các quản trị viên</Radio>
-                                                                        <Radio value="just admin">Chỉ các quản trị viên</Radio>
-                                                                    </>
-                                                                )}
-                                                                {item?.action === "checklist" && (
-                                                                    <>
-                                                                        <Radio value="all guest">Tất cả thành viên trong bảng</Radio>
-                                                                        <Radio value="card member">Chỉ các thành viên tham gia thẻ và các quản trị viên</Radio>
-                                                                        <Radio value="just admin">Chỉ các quản trị viên hoặc người được chỉ định</Radio>
-                                                                    </>
-                                                                )}
-                                                            </Radio.Group>
-                                                        </div>
-                                                    </React.Fragment>
-                                                ))
-                                            }
-                                        </div>
+                        {
+                            props?.board?.role === "own" ? (
+                                <CustomPop
+                                    title={
+                                        <>
+                                            <Flex justify='center'>
+                                                Quy tắc
+                                            </Flex>
+                                        </>
+                                    } content={
+                                        <>
+                                            <Flex vertical gap={10}>
+                                                <div style={{ width: 320, padding: '8px 0' }}>
+                                                    {
+                                                        setting?.map((item: any, index: number) => (
+                                                            <React.Fragment key={index}>
+                                                                <Divider style={{ margin: '5px 0' }} />
+                                                                <div style={{ padding: '8px 16px' }}>
+                                                                    <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                                                        Ai có thể
+                                                                        {item?.action === "invite" && " tham gia vào thẻ"}
+                                                                        {item?.action === "handle" && (
+                                                                            <>
+                                                                                &nbsp;thao tác với thẻ <br />
+                                                                                (Việc cần làm, Đính kèm file, Ngày, Nhãn)
+                                                                            </>
+                                                                        )}
+                                                                        {item?.action === "checklist" && " đánh dấu Việc cần làm"}?
+                                                                    </Text>
+                                                                    <Radio.Group
+                                                                        value={item?.permission}
+                                                                        onChange={(e) => updateSetting(item.action, e.target.value)}
+                                                                        style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                                                                    >
+                                                                        {item?.action === "invite" && (
+                                                                            <>
+                                                                                <Radio value="all guest">Tất cả thành viên trong bảng</Radio>
+                                                                                <Radio value="just admin">Chỉ khi được các quản trị viên chỉ định</Radio>
+                                                                            </>
+                                                                        )}
+                                                                        {item?.action === "handle" && (
+                                                                            <>
+                                                                                <Radio value="all guest">Tất cả thành viên trong bảng</Radio>
+                                                                                <Radio value="card member">Chỉ các thành viên tham gia thẻ và các quản trị viên</Radio>
+                                                                                <Radio value="just admin">Chỉ các quản trị viên</Radio>
+                                                                            </>
+                                                                        )}
+                                                                        {item?.action === "checklist" && (
+                                                                            <>
+                                                                                <Radio value="all guest">Tất cả thành viên trong bảng</Radio>
+                                                                                <Radio value="card member">Chỉ các thành viên tham gia thẻ và các quản trị viên</Radio>
+                                                                                <Radio value="just admin">Chỉ các quản trị viên hoặc người được chỉ định</Radio>
+                                                                            </>
+                                                                        )}
+                                                                    </Radio.Group>
+                                                                </div>
+                                                            </React.Fragment>
+                                                        ))
+                                                    }
+                                                </div>
 
-                                    </Flex>
-                                </>
-                            } >
-                            <Button block icon={<SettingOutlined />} className={cx("button")}>
-                                Quy tắc
-                            </Button>
-                        </CustomPop>
+                                            </Flex>
+                                        </>
+                                    } >
+                                    <Button block icon={<SettingOutlined />} className={cx("button")}>
+                                        Quy tắc
+                                    </Button>
+                                </CustomPop>
+                            ) : (
+                                <></>
+                            )
+                        }
+
                     </Col>
                 </Row>
             </Modal >

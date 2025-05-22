@@ -2,9 +2,11 @@ export const URL = {
   AUTH: {
     LOGIN: '/login',
     REGISTER: '/register',
+    VERIFICATIONEMAIL: '/verificationemail',
+    INFORACCOUNT: '/inforaccount',
   },
   HOME: {
-    HOME: '',
+    HOME: '/',
     BOARD: '/board',
     MESSAGE: '/message',
     FOLLOW: '/follow',

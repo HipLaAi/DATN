@@ -6,11 +6,15 @@ import { ActivityLogModel } from "../models/activityLogModels";
 export class ActivityLogService {
     constructor(private activityLogReponsitory: ActivityLogReponsitory) { };
 
-    async createActivityLog(activityLog: ActivityLogModel): Promise<any> {
+    async createActivityCard(activityLog: ActivityLogModel): Promise<any> {
         return this.activityLogReponsitory.createActivityCard(activityLog);
     }
 
     async getActivityCard(activityLog: ActivityLogModel): Promise<any> {
         return this.activityLogReponsitory.getActivityCard(activityLog);
+    }
+
+    async createActivityUser(activityLog: ActivityLogModel): Promise<any> {
+        return this.activityLogReponsitory.createActivityUser(activityLog);
     }
 }

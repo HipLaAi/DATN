@@ -188,4 +188,19 @@ export class BoardController {
             return res.status(500).json({ message: error.message, success: false });
         }
     }
+
+    async updateRoleGuest(req: Request, res: Response): Promise<any> {
+        const { error, value } = boardSchema.validate(req.body); //check value
+
+        if (error) {
+            return res.status(422).json({ message: error.details[0].message });
+        }
+
+        try {
+            await this.boardService.updateRoleGuest(value);
+            return res.status(200).json({ message: 'Success', success: true });
+        } catch (error: any) {
+            res.status(500).json({ message: error.message, results: false });
+        }
+    }
 }

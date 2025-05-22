@@ -24,7 +24,7 @@ export function LoginForm({
       localStorage.setItem("accessToken", result.accessToken);
       localStorage.setItem("name", result.name);
       localStorage.setItem("avatar", result.avatar);
-      navigate(URL.HOME.BOARD)
+      navigate(URL.HOME.HOME)
     }
   }
 
@@ -43,7 +43,7 @@ export function LoginForm({
     if (response) {
       localStorage.setItem("accessToken", response.accessToken)
       localStorage.setItem("name", response.name);
-      localStorage.setItem("avatar", response.avatar.replace("D:\\DA4\\frontend\\", ""));
+      localStorage.setItem("avatar", response.avatar);
       navigate(URL.HOME.HOME);
     }
   };

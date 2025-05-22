@@ -66,7 +66,7 @@ export class CardController {
         try {
             const id = req.params.id;
             const oldFilePath = await this.cardService.deleteCard(id);
-            uploadMiddleware.Remove(oldFilePath.old_path);
+            // uploadMiddleware.Remove(oldFilePath.old_path);
             return res.status(200).json({ message: 'Success', success: true });
         } catch (error: any) {
             return res.status(500).json({ message: error.message, success: false });
@@ -83,7 +83,7 @@ export class CardController {
         try {
             const id = parseInt(req.params.id, 10);
             const results = await this.cardService.createUserJoinCard({
-                ... value,
+                ...value,
                 card_id: id
             });
             return res.status(200).json(results);
@@ -185,6 +185,49 @@ export class CardController {
         try {
             const id = req.params.id;
             const results = await this.cardService.getCardByUser(id);
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+
+    async getCardEndDate(req: Request, res: Response): Promise<any> {
+        try {
+            const user = (req as any).user;
+            const results = await this.cardService.getCardEndDate(user.user_id, req.body.option);
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async getCard(req: Request, res: Response): Promise<any> {
+        try {
+            const user = (req as any).user;
+            const results = await this.cardService.getCard(user.user_id, req.body.option);
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async getCardInWeek(req: Request, res: Response): Promise<any> {
+        try {
+            const user = (req as any).user;
+            const results = await this.cardService.getCardInWeek(user.user_id);
             if (results) {
                 res.status(200).json(results);
             } else {

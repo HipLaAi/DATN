@@ -5,6 +5,7 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from ".
 import { userSchema } from "../schemas/userSchema";
 import { OAuth2Client } from "google-auth-library";
 import { config } from "../config/config";
+import nodemailer from 'nodemailer';
 
 const client = new OAuth2Client(config.google.clientId);
 
@@ -13,25 +14,41 @@ export class UserController {
     constructor(private userService: UserService) { }
 
     async register(req: Request, res: Response): Promise<any> {
-        const { error, value } = userSchema.validate(req.body); //check value
+        const { error, value } = userSchema.validate(req.body);
 
         if (error) {
             return res.status(422).json({ message: error.details[0].message });
         }
 
         try {
-            const files = req.files as Express.Multer.File[];
-            const filePaths = files.map(file => file.path);
-            await this.userService.register({
+            const user = await this.userService.register({
                 ...value,
-                avatar: filePaths,
+                avatar: "https://res.cloudinary.com/dqkog9xuj/image/upload/v1747408858/uploads/avatar_trang_1_cd729c335b-723223148.jpg",
             });
-            return res.status(200).json({ message: 'Success', results: true });
+
+            const payload = {
+                user_id: user.user_id,
+                email: user.email,
+            };
+
+            const accessToken = generateAccessToken(payload);
+            const refreshToken = generateRefreshToken(payload);
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: false,
+                sameSite: 'strict',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+            });
+
+            return res.json({
+                accessToken,
+                name: user.name,
+                avatar: user.avatar
+            });
+
         } catch (error: any) {
-            if (error.message.includes('Duplicate entry')) {
-                return res.status(409).json({ message: 'Email is already in use', results: false });
-            }
-            return res.status(500).json({ message: 'Internal server error', results: false });
+            return res.status(500).json({ message: error.message });
         }
     }
 
@@ -90,8 +107,12 @@ export class UserController {
             if (!payloadGoogle || !payloadGoogle.email) {
                 return res.status(403).json({ message: 'Invalid token' });
             }
-            
+
             const user = await this.userService.googleLogin(payloadGoogle);
+
+            if (!user) {
+                return res.status(200).json(false);
+            }
 
             const payload = {
                 user_id: user.user_id,
@@ -163,6 +184,127 @@ export class UserController {
             }
         } catch (error: any) {
             res.status(500).json({ message: error.message });
+        }
+    }
+
+    async getUserGrowthRate(req: Request, res: Response): Promise<any> {
+        try {
+            const month = parseInt(req.params.month);
+            const results = await this.userService.getUserGrowthRate(month);
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async getNewUser(req: Request, res: Response): Promise<any> {
+        try {
+            const month = parseInt(req.params.month);
+            const results = await this.userService.getNewUser(month);
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async getActivityUser(req: Request, res: Response): Promise<any> {
+        try {
+            const results = await this.userService.getActivityUser();
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async getAllUser(req: Request, res: Response): Promise<any> {
+        try {
+            const results = await this.userService.getAllUser();
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async getActivityUserByRange(req: Request, res: Response): Promise<any> {
+        try {
+            const range = req.params.range;
+            const results = await this.userService.getActivityUserByRange(range);
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async sendVerificationEmail(req: Request, res: Response): Promise<any> {
+        try {
+            const { email } = req.body;
+
+            const user = await this.userService.search(email)
+            if (user) {
+                return res.status(400).json({ message: 'Email đã tồn tại' });
+            }
+
+            const verificationCode = Math.floor(100000 + Math.random() * 900000);
+
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: "vuvanhiep05092003@gmail.com",
+                    pass: "dpcg liel asym hhqp",
+                },
+            });
+
+            const mailOptions = {
+                from: "vuvanhiep05092003@gmail.com",
+                to: email,
+                subject: 'Mã xác nhận đăng ký',
+                text: `Mã xác nhận của bạn là: ${verificationCode}`,
+            };
+
+            await transporter.sendMail(mailOptions);
+            return res.status(200).json(verificationCode);
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async logout(req: Request, res: Response): Promise<any> {
+        try {
+            const refreshToken = req.cookies.refreshToken;
+
+            if (!refreshToken) {
+                return res.status(400).json({ message: 'No refresh token found' });
+            }
+
+            res.clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: false,
+                sameSite: 'strict',
+            });
+
+            return res.status(200).json({ message: 'Logged out successfully' });
+        } catch (error: any) {
+            return res.status(500).json({ message: error.message });
         }
     }
 

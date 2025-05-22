@@ -42,3 +42,8 @@ export const deleteBoardAPI = async (id: any): Promise<any> => {
     const res = await apiServer?.delete(`/api/board/delete/` + id);
     return res?.data;
 };
+
+export const updateRoleGuestAPI = async (data: any): Promise<any> => {
+    const res = await apiServer?.post(`/api/board/updateguest`, data);
+    return res?.data;
+};

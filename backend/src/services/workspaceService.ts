@@ -4,7 +4,7 @@ import { WorkspaceModel } from "../models/workspaceModel";
 
 @injectable()
 export class WorkspaceService {
-    constructor(private workspaceReponsitory: WorkspaceReponsitory) {};
+    constructor(private workspaceReponsitory: WorkspaceReponsitory) { };
 
     async createWorkspace(workspace: WorkspaceModel): Promise<any> {
         return this.workspaceReponsitory.createWorkspace(workspace);
@@ -52,5 +52,9 @@ export class WorkspaceService {
 
     async updateRoleMember(workspace: WorkspaceModel): Promise<any> {
         return this.workspaceReponsitory.updateRoleMember(workspace);
+    }
+
+    async getSearch(search: string, userID: string): Promise<any> {
+        return this.workspaceReponsitory.getSearch(search, userID);
     }
 }

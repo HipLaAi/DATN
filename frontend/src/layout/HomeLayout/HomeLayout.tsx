@@ -1,100 +1,44 @@
-import { Outlet, useNavigate } from 'react-router-dom';
-import { Col, Layout, Row } from 'antd';
-import styles from './HomeLayout.module.scss';
-import classNames from "classnames/bind";
-import Header from "../../component/Header/Header";
-import MenuSibar from "../../component/MenuSibar/MenuSibar";
-import { useEffect, useState } from 'react';
-import SplashCursor from '../../component/Reactbits/SplashCursor';
+import { AppSidebar } from "../../components/app-sidebar"
+import { SiteHeader } from "../../components/site-header"
+import { SidebarInset, SidebarProvider } from "../../component/ui/sidebar"
+import { Outlet } from "react-router-dom"
 
-import {
-  getWorkSpaceGuestByIdUserAPI,
-  getWorkSpaceMemberByIdUserAPI
-} from '../../services/WorkSpace/workSapce.service';
-import Aurora from '../../component/Reactbits/Aurora/Aurora';
+import data from "./data.json"
+import { useEffect, useState } from "react"
+import { getAllUserAPI } from "../../services/User/user.service"
 
-const cx = classNames.bind(styles);
-const { Content, Sider } = Layout;
+export default function HomeLayout() {
+  const [allUser, setAllUser] = useState<any>();
 
-const HomeLayout = () => {
-  const navigate = useNavigate()
-  const [workSpaceMember, setWorkSpaceMember] = useState<any[]>([])
-  const [workSpaceGuest, setWorkSpaceGuest] = useState<any[]>([])
-  // const fetchWorkSapceMemberByUserID = async () => {
-  //   const response = await getWorkSpaceMemberByIdUserAPI()
-  //   if (!response.message) {
-  //     setWorkSpaceMember(response)
-  //   }
-  // }
-  // const fetchWorkSapceGuestByUserID = async () => {
-  //   const response = await getWorkSpaceGuestByIdUserAPI()
-  //   if (!response.message) {
-  //     setWorkSpaceGuest(response)
-  //   }
-  // }
-  const fetchWorkSapceMemberByUserID = async () => {
+  const fetchAllUser = async () => {
     try {
-      const response = await getWorkSpaceMemberByIdUserAPI()
-      if (!response.message) {
-        setWorkSpaceMember(response)
-      }
-    } catch (error: any) {
-      if (error.response?.status === 403) {
-        navigate("/login")
-      }
+      const response = await getAllUserAPI();
+      setAllUser(response);
+    } catch (error) {
+      console.error("Failed:", error);
     }
-  }
-
-  const fetchWorkSapceGuestByUserID = async () => {
-    try {
-      const response = await getWorkSpaceGuestByIdUserAPI()
-      if (!response.message) {
-        setWorkSpaceGuest(response)
-      }
-    } catch (error: any) {
-      if (error.response?.status === 403) {
-        navigate("/login")
-      }
-    }
-  }
+  };
 
   useEffect(() => {
-    fetchWorkSapceMemberByUserID()
-    fetchWorkSapceGuestByUserID()
-  }, [])
-
+    fetchAllUser();
+  }, []);
 
   return (
-    <>
-      <Layout className={cx('home-layout')}>
-        <Header />
-        {/* <SplashCursor /> */}
-        <Row justify="center">
-          <Col span={18}>
-            <Content >
-              {/* <Aurora
-                colorStops={["#3A29FF", "#FF94B4", "#FF3232"]}
-                blend={0.5}
-                amplitude={1.0}
-                speed={0.5}
-              /> */}
-              <Layout className={cx('home-layout-content')}>
-                <Sider width={260} theme='light' className={cx('home-layout-sidebar')}>
-                  <MenuSibar menuData={workSpaceMember ?? []} />
-                </Sider>
-                <Content className={cx('home-layout-content-main')}>
-                  <Outlet context={{
-                    workSpaceMember: workSpaceMember ?? [],
-                    workSpaceGuest: workSpaceGuest ?? []
-                  }} />
-                </Content>
-              </Layout>
-            </Content>
-          </Col>
-        </Row>
-      </Layout>
-    </>
-  );
-};
-
-export default HomeLayout;
+    <SidebarProvider>
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <Outlet context={{
+                data: data,
+                dataUser: allUser
+              }} />
+            </div>
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}

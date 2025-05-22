@@ -66,7 +66,7 @@ const BoardLayout = () => {
       if (!response.message) {
         setWorkSpaceMember(response)
       }
-      else{
+      else {
         setWorkSpaceMember([])
       }
     } catch (error: any) {
@@ -83,7 +83,7 @@ const BoardLayout = () => {
       if (!response.message) {
         setWorkSpaceGuest(response)
       }
-      else{
+      else {
         setWorkSpaceGuest([])
       }
     } catch (error: any) {
@@ -139,7 +139,7 @@ const BoardLayout = () => {
           position: "fixed",
           bottom: "20px",
           right: "20px",
-          zIndex: "2"
+          zIndex: "10"
         }}
         onClick={() => handleOPenChatAI()}
         icon={
@@ -151,7 +151,7 @@ const BoardLayout = () => {
         }
       />
       {
-        isopenChatAI && <ChatAI />
+        isopenChatAI && <ChatAI workSpaceMember={workSpaceMember} handleOPenChatAI={handleOPenChatAI}/>
       }
 
       <Layout className={cx('layout')}>

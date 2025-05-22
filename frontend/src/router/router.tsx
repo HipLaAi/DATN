@@ -23,6 +23,14 @@ import Whiteboard from "../page/Board/BoardContent/WhiteBoard/WhiteBoard";
 import VideoCallComponent from "../component/VideoCall/VideoCallComponent ";
 import Main from "../page/Home/Main/Main";
 import ChatComponent from "../page/Home/Message/Message";
+import Page from "../layout/HomeLayout/HomeLayout";
+import HomeLayout from "../layout/HomeLayout/HomeLayout";
+import { SectionCards } from "../components/section-cards";
+import { ChartAreaInteractive } from "../components/chart-area-interactive";
+import { DataTable } from "../components/data-table";
+import { MainRegister } from "../component/Auth/MainRegister";
+import { VerificationEmail } from "../component/Auth/VerificationEmail";
+import { InforAccount } from "../component/Auth/InforAccount";
 
 const route = createBrowserRouter([
   {
@@ -33,11 +41,11 @@ const route = createBrowserRouter([
         element: <Board />
       },
       {
-        path: "/",
+        path: URL.HOME.HOME,
         element: <Main />
       },
       {
-        path: "videocall",
+        path: "video",
         element: <VideoCallComponent />
       },
       {
@@ -112,9 +120,42 @@ const route = createBrowserRouter([
         element: <Login />
       },
       {
-        path: URL.AUTH.REGISTER,
-        element: <Register />
+        element: <Register />,
+        children: [
+          {
+            path: URL.AUTH.REGISTER,
+            element: <MainRegister />
+          },
+          {
+            path: URL.AUTH.VERIFICATIONEMAIL,
+            element: <VerificationEmail />
+          },
+          {
+            path: URL.AUTH.INFORACCOUNT,
+            element: <InforAccount />
+          }
+        ]
       }
+    ]
+  },
+  {
+    element: <HomeLayout />,
+    children: [
+      {
+        path: "admin/dashboard",
+        element:
+          <>
+            <SectionCards />
+            <div className="px-4 lg:px-6">
+              <ChartAreaInteractive />
+            </div>
+          </>
+      },
+      {
+        path: "admin/user",
+        element:
+          <DataTable />
+      },
     ]
   },
   {

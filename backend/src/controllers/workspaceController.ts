@@ -217,4 +217,20 @@ export class WorkspaceController {
             res.status(500).json({ message: error.message, results: false });
         }
     }
+
+    async getSearch(req: Request, res: Response): Promise<any> {
+        try {
+            const search = req.body.search;
+            const user = (req as any).user;
+
+            const results = await this.workspaceService.getSearch(search, user.user_id);
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json([]);
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
 }

@@ -7,7 +7,7 @@ import { activityLogSchema } from "../schemas/activityLogSchema";
 export class ActivityLogController {
     constructor(private activityLogService: ActivityLogService) { }
 
-    async createActivityLog(req: Request, res: Response): Promise<any> {
+    async createActivityCard(req: Request, res: Response): Promise<any> {
         const { error, value } = activityLogSchema.validate(req.body); //check value
 
         if (error) {
@@ -16,7 +16,7 @@ export class ActivityLogController {
 
         try {
 
-            const results = await this.activityLogService.createActivityLog(value);
+            const results = await this.activityLogService.createActivityCard(value);
 
             return res.status(200).json(results);
         } catch (error: any) {
@@ -31,6 +31,23 @@ export class ActivityLogController {
             const results = await this.activityLogService.getActivityCard({
                 card_id: card_id,
             });
+            return res.status(200).json(results);
+        } catch (error: any) {
+            res.status(500).json({ message: error.message, results: false });
+        }
+    }
+
+    async createActivityUser(req: Request, res: Response): Promise<any> {
+        const { error, value } = activityLogSchema.validate(req.body); //check value
+
+        if (error) {
+            return res.status(422).json({ message: error.details[0].message });
+        }
+
+        try {
+
+            const results = await this.activityLogService.createActivityUser(value);
+
             return res.status(200).json(results);
         } catch (error: any) {
             res.status(500).json({ message: error.message, results: false });

@@ -6,13 +6,13 @@ import { ActivityLogModel } from "../models/activityLogModels";
 export class ActivityLogReponsitory {
     constructor(private db: Database) { };
 
-    async createActivityCard(activitycard: ActivityLogModel): Promise<any> {
+    async createActivityCard(activityLog: ActivityLogModel): Promise<any> {
         try {
             const sql = 'call CreateActivityCard(?, ?, ?, @err_code, @err_msg)';
             const results = await this.db.query(sql, [
-                activitycard.card_id,
-                activitycard.user_id,
-                activitycard.description,
+                activityLog.card_id,
+                activityLog.user_id,
+                activityLog.description,
             ]);
 
             if (Array.isArray(results) && results.length > 0) {
@@ -25,11 +25,11 @@ export class ActivityLogReponsitory {
         }
     }
 
-    async getActivityCard(activitycard: ActivityLogModel): Promise<any> {
+    async getActivityCard(activityLog: ActivityLogModel): Promise<any> {
         try {
             const sql = 'call GetActivityCardByID(?, @err_code, @err_msg)';
             const results = await this.db.query(sql, [
-                activitycard.card_id,
+                activityLog.card_id,
             ]);
 
             if (Array.isArray(results) && results.length > 0) {
@@ -37,6 +37,25 @@ export class ActivityLogReponsitory {
             }
 
             return null;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
+
+    async createActivityUser(activityLog: ActivityLogModel): Promise<any> {
+        try {
+            const sql = 'call CreateActivityUser(?, ?, ?, ?, ?, ?, ?, @err_code, @err_msg)';
+            await this.db.query(sql, [
+                activityLog.user_id,
+                activityLog.action,
+                activityLog.ip_address,
+                activityLog.device,
+                activityLog.browser,
+                activityLog.url,
+                activityLog.status,
+            ]);
+
+            return true;
         } catch (error: any) {
             throw new Error(error.message);
         }

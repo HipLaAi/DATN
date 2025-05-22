@@ -81,4 +81,10 @@ workspaceRouter.post(
     workspaceController.updateRoleMember.bind(workspaceController)
 );
 
+workspaceRouter.post(
+    '/getsearch',
+    authenticate,
+    workspaceController.getSearch.bind(workspaceController)
+);
+
 export default workspaceRouter;

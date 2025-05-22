@@ -18,10 +18,11 @@ import MenuComponent from "../Setting/MenuComponent";
 import BoardInfo from "../Setting/BoardInfo";
 import BoardSetting from "../Setting/BoardSetting";
 import { useDispatch } from "react-redux";
-import { boardReload } from "../../../features/reloadSlice";
+import { boardDetailReload, boardReload } from "../../../features/reloadSlice";
 import BoardLabel from "../Setting/BoardLabel";
 import { URL } from "../../../utils/url";
 import ExportComponent from "../Setting/BoardShare";
+import BoardGuest from "../Setting/BoardGuest";
 
 const cx = classNames.bind(style);
 const { Title, Text } = Typography
@@ -75,26 +76,25 @@ const BoardBar = (props: any) => {
     }
   };
 
-  const handleCreateMember = async (selectedUsers: any) => {
-    const response = await createGuestdAPI({
-      user_id: selectedUsers.map((item: any) => item.user_id).toString(),
-      board_id: id
-    })
-    const newGuest = [...guest]
-    newGuest.push(response);
+  const handleCreateMember = async (selectedUsers: any, role: any) => {
+    const newGuest = [...guest];
+    for (const item of selectedUsers) {
+      try {
+        const response = await createGuestdAPI({
+          user_id: item?.user_id.toString(),
+          board_id: id,
+          role: role,
+        });
+        newGuest.push(response);
+      } catch (error) {
+        console.error(error);
+      }
+    }
     setGuest(newGuest);
     handleOpenModal();
-  }
+    dispatch(boardDetailReload());
+  };
 
-  const handleDeleteGuest = async () => {
-    await deleteGuestAPI(id, {
-      user_id: userID
-    })
-  }
-
-  const handleDeleteBoard = async () => {
-    await deleteBoardAPI(id);
-  }
   // Load tên bảng
   useEffect(() => {
     if (board?.name) {
@@ -133,6 +133,11 @@ const BoardBar = (props: any) => {
           board={board}
           workSpaceMember={workSpaceMember}
           handleDataBoardChange={handleDataBoardChange}
+        />;
+      case "Thành viên":
+        return <BoardGuest
+          board={board}
+          guest={guest}
         />;
       case 'Cài đặt':
         return <BoardSetting
@@ -190,6 +195,7 @@ const BoardBar = (props: any) => {
   return (
     <>
       <ModalCreateGuest
+        guest={guest}
         handleOpenModal={handleOpenModal}
         openModal={openModal}
         loading={loading}
@@ -497,7 +503,7 @@ const BoardBar = (props: any) => {
                     </>
 
                   ) : (
-                    <MenuComponent setActiveMenu={setActiveMenu} />
+                    <MenuComponent setActiveMenu={setActiveMenu} board={board} />
                   )
                 }
               </SheetSide>

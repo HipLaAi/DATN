@@ -59,3 +59,8 @@ export const updateRoleMemberAPI = async (data: any): Promise<any> => {
     const res = await apiServer?.post(`/api/workspace/updatemember`, data);
     return res?.data;
 };
+
+export const getSearchAPI = async (data: any): Promise<any> => {
+    const res = await apiServer?.post(`/api/workspace/getsearch`, data);
+    return res?.data;
+};

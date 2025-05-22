@@ -9,7 +9,7 @@ const chatController = container.resolve(ChatController);
 
 chatRouter.post(
     '/ai',
-    // authenticate,
+    authenticate,
     chatController.getChatResponse.bind(chatController)
 );
 

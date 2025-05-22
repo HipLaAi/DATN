@@ -64,4 +64,10 @@ boardRouter.post(
     boardController.deleteGuest.bind(boardController)
 );
 
+boardRouter.post(
+    '/updateguest',
+    authenticate,
+    boardController.updateRoleGuest.bind(boardController)
+);
+
 export default boardRouter;
