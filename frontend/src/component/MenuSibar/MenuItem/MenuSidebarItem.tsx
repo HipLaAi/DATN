@@ -54,17 +54,17 @@ export const MenuSideBarItem = (data: any[]): MenuItem[] => [
             <Text strong>Tin nhắn</Text>
           </>
       },
-      {
-        key: '4',
-        icon:
-          <Link to={URL.HOME.FOLLOW}>
-            <EyeFilled style={{ fontSize: '18px' }} />
-          </Link>,
-        label:
-          <>
-            <Text strong>Theo dõi</Text>
-          </>
-      },
+      // {
+      //   key: '4',
+      //   icon:
+      //     <Link to={URL.HOME.FOLLOW}>
+      //       <EyeFilled style={{ fontSize: '18px' }} />
+      //     </Link>,
+      //   label:
+      //     <>
+      //       <Text strong>Theo dõi</Text>
+      //     </>
+      // },
       {
         key: '5',
         icon:

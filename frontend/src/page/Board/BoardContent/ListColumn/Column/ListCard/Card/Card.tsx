@@ -1,5 +1,5 @@
-import { Avatar, Button, Card as CardAntd, Col, Flex, Input, Typography } from "antd";
-import { CommentOutlined, EditOutlined, EyeOutlined, FileTextOutlined, UserOutlined } from '@ant-design/icons';
+import { Avatar, Button, Card as CardAntd, Checkbox, Col, Flex, Input, Radio, Typography } from "antd";
+import { ClockCircleOutlined, CommentOutlined, EditOutlined, EyeOutlined, FileTextOutlined, MinusOutlined, UserOutlined } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from '../../../../BoardContent.module.scss';
 import { Card as CardModel } from "../../../../../../../model/CardModel";
@@ -9,6 +9,9 @@ import { useOutletContext } from "react-router-dom";
 import CustomPop from "../../../../../../../component/PopConfirm/PopConfirm";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { updateInformationCard } from "../../../../../../../services/Card/Card.service";
+import { Title } from "@radix-ui/react-dialog";
+import dayjs from "dayjs";
 
 const cx = classNames.bind(styles);
 
@@ -32,6 +35,7 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
     transition,
     isDragging
   } = useSortable({ id: card.card_id, data: { ...card } });
+  const [cardName, setCardName] = useState(card?.name);
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -58,9 +62,33 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
     (state: any) => state.reload.cardDetailReload
   );
 
+  //Hàm cập nhật thông tin (tên) thẻ
+  const handleUpdateInformationCard = async () => {
+    setToggleEditCard(!toggleEditCard)
+    try {
+      await updateInformationCard(card?.card_id, {
+        name: cardName,
+        description: card?.description
+      })
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   useEffect(() => {
     fetchCardById(card.card_id)
   }, [cardDetailReload])
+
+  const currentDate = dayjs(); // Ngày hiện tại
+  const endDate = dayjs(card?.end_date);
+
+  // Xác định màu sắc
+  const backgroundColor =
+    card?.status === "true"
+      ? "rgb(15 206 15)"
+      : endDate.isBefore(currentDate)
+        ? "#ff5a5c"
+        : "yellow";
 
   return (
     <>
@@ -73,22 +101,41 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
             padding: '0px'
           }
         }}
-        cover={card?.background ?
-          <img
-            alt="example"
-            src="https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png"
-          /> : null
-        }
+        // cover={card?.background ?
+        //   <img
+        //     alt="example"
+        //     src="https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png"
+        //   /> : null
+        // }
         onClick={() => handleOpenModal(card.card_id)}
-
       >
         <Flex align="center" justify="space-between" gap="10px">
           {
+            card?.status === 'true' ? (
+              <Checkbox
+                disabled
+                checked={true}
+                style={{
+                  backgroundColor: '#1cf11c',
+                  borderRadius: "5px",
+                  height: "15px"
+                }}
+              />
+            ) : (
+              <></>
+            )
+          }
+
+          {
             toggleEditCard ? (
-              <Input value={card?.name} onClick={(e) => e.stopPropagation()} />
+              <Input value={cardName}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => setCardName(e.target.value)}
+                onPressEnter={handleUpdateInformationCard}
+              />
             ) : (
               <>
-                <Text style={{ marginLeft: "5px" }}>{card?.name}</Text>
+                <Text style={{ marginLeft: "5px" }}>{cardName}</Text>
               </>
             )
           }
@@ -104,7 +151,7 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
             </Button>
           </CustomPop>
         </Flex>
-        {
+        {/* {
           action ? (
             <div className={cx('flex', 'card-action')}>
               <EyeOutlined />
@@ -115,7 +162,7 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
               <FileTextOutlined />
             </div>
           ) : <></>
-        }
+        } */}
         <Flex justify="end" vertical={true} gap={10}>
           <Flex>
             {
@@ -143,6 +190,30 @@ const Card: React.FC<Props> = ({ action = false, card }) => {
               ))
             }
           </Flex>
+          {
+            card?.end_date ? (
+              <>
+                <Flex
+                  gap={10}
+                  wrap="wrap"
+                  style={{
+                    backgroundColor,
+                    padding: "1px 5px",
+                    borderRadius: "8px",
+                    alignItems: "center",
+                    width: "150px"
+                  }}
+                >
+                  <ClockCircleOutlined />
+                  <span>{dayjs(card?.start_date).format("DD/MM")}</span>
+                  -
+                  <span>{dayjs(card?.end_date).format("DD/MM")}</span>
+                </Flex>
+              </>
+            ) : (
+              <></>
+            )
+          }
         </Flex>
       </CardAntd >
 

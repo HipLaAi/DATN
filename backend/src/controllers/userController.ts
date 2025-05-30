@@ -23,12 +23,13 @@ export class UserController {
         try {
             const user = await this.userService.register({
                 ...value,
-                avatar: "https://res.cloudinary.com/dqkog9xuj/image/upload/v1747408858/uploads/avatar_trang_1_cd729c335b-723223148.jpg",
+                avatar: "https://res.cloudinary.com/dqkog9xuj/image/upload/v1747490098/uploads/avatar_trang_1_cd729c335b-422022293.png.jpg",
             });
 
             const payload = {
                 user_id: user.user_id,
                 email: user.email,
+                role: user.role
             };
 
             const accessToken = generateAccessToken(payload);
@@ -68,6 +69,7 @@ export class UserController {
             const payload = {
                 user_id: user.user_id,
                 email: user.email,
+                role: user.role
             };
 
             const accessToken = generateAccessToken(payload);
@@ -117,6 +119,7 @@ export class UserController {
             const payload = {
                 user_id: user.user_id,
                 email: user.email,
+                role: user.role
             };
 
             const accessToken = generateAccessToken(payload);
@@ -153,6 +156,7 @@ export class UserController {
         const payload = {
             user_id: user.user_id,
             email: user.email,
+            role: user.role
         };
 
         const newAccessToken = generateAccessToken(payload);

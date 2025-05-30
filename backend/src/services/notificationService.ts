@@ -1,34 +1,21 @@
-// import cron from 'node-cron';
-// import { container } from "tsyringe";
-// import { io, activeUser } from "../server";
-// import { NotificationRepository } from '../repositories/notificationRepository';
+import { injectable } from "tsyringe";
+import { NotificationRepository } from "../repositories/notificationRepository";
+import { NotificationModel } from "../models/notificationModel";
 
-// const notificationRepository = container.resolve(NotificationRepository);
 
-// cron.schedule('*/10 * * * * *', async () => {
-//     try {
-//         const rows = await notificationRepository.getNotification();
+@injectable()
+export class NotificationService {
+    constructor(private notificationReponsitory: NotificationRepository) { };
 
-//         if (!Array.isArray(rows) || rows.length === 0) {
-//             return;
-//         }
+    async getNotificationRead(notification: NotificationModel): Promise<any> {
+        return this.notificationReponsitory.getNotificationRead(notification);
+    }
 
-//         if (!Array.isArray(activeUser)) {
-//             return;
-//         }
+    async updateNotificationRead(notification: NotificationModel): Promise<any> {
+        return this.notificationReponsitory.updateNotificationRead(notification);
+    }
 
-//         for (const notification of rows) {
-//             const user = activeUser.find((user) => user.userId === notification.user_id)
-//             if (user) {
-//                 io.to(user.socketId).emit('notification', {
-//                     title: notification.user_id,
-//                     message: notification.message,
-//                     cardId: notification.card_id,
-//                 });
-//             }
-//         }
-
-//     } catch (err) {
-//         console.error('Error sending notifications:', err);
-//     }
-// });
+    async createNotification(notification: NotificationModel): Promise<any> {
+        return this.notificationReponsitory.createNotification(notification);
+    }
+}

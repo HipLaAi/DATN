@@ -43,7 +43,7 @@ export const getAccessToken = async (req: Request, res: Response) => {
 
 // Hàm tạo sự kiện Google Meet
 export const createGoogleMeetEvent = async (req: Request, res: Response) => {
-    const { summary, startTime, endTime } = req.body;
+    const { summary, startTime, endTime, attendees } = req.body;
     try {
         const calendar = google.calendar({ version: 'v3', auth: client });
 
@@ -57,10 +57,7 @@ export const createGoogleMeetEvent = async (req: Request, res: Response) => {
                     conferenceSolutionKey: { type: 'hangoutsMeet' },
                 },
             },
-            attendees: [
-                { email: 'vuminhhieu21122003@gmail.com' },
-                { email: 'vuvanhiep05092003@gmail.com' },
-            ],
+            // attendees: attendees,
         };
 
 

@@ -9,4 +9,5 @@ export interface BoardModel {
 
     user_id?: number;
     role?: string;
+    card_status?: string;
 }

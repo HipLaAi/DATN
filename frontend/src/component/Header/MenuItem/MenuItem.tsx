@@ -1,7 +1,7 @@
 import { Avatar, Button, Card, Flex, Input, MenuProps, Space } from "antd";
 import { Link } from "react-router-dom";
 import { Typography } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { FullscreenOutlined, UserOutlined } from '@ant-design/icons';
 import { IoMdMore } from "react-icons/io";
 import { mockData } from "../../../api/mock-data";
 import { FiMoreVertical } from "react-icons/fi";
@@ -10,7 +10,6 @@ import { URL } from "../../../utils/url";
 import { logout } from "../../../services/User/user.service";
 
 const { Text, Title } = Typography
-
 
 export const worksapcesMenuItem: MenuProps['items'] = [
   {
@@ -119,87 +118,43 @@ export const recentlyMenuItem: MenuProps["items"] = [
   },
 ]
 
-// export const notificationMenuItem: MenuProps["items"] = [
-//   {
-//     label:
-//       <>
-//         <Flex justify="space-between" align="center">
-//           <Title level={4} style={{ marginTop: "10px" }}>Thông Báo</Title>
-//           <IoMdMore />
-//         </Flex>
-//       </>,
-//     key: '0',
-//     disabled: true
-//   },
-//   {
-//     type: 'divider',
-//   },
-//   ...mockData.board.columns[0].cards.map((item: any, index: any) => ({
-//     key: `${index + 3}`, // Key bắt đầu từ 3 (bỏ qua 2 phần tử đầu)
-//     label: (
-//       <Flex
-//         style={{
-//           width: "360px",
-//           backgroundColor: "gray",
-//           borderRadius: "5px",
-//         }}
-//         vertical
-//       >
-//         <Flex
-//           vertical
-//           style={{
-//             backgroundColor: "pink",
-//             padding: "10px",
-//             borderTopLeftRadius: "5px",
-//             borderTopRightRadius: "5px",
-//           }}
-//           gap="5px"
-//         >
-//           <Link to="work" style={{ display: "block", width: "100%" }}>
-//             <Card
-//               style={{ width: "100%" }}
-//               bodyStyle={{
-//                 padding: "10px",
-//               }}
-//             >
-//               <Flex vertical justify="start" gap={10}>
-//                 {item.title}
-//                 <div
-//                   style={{
-//                     backgroundColor: "red",
-//                     width: "fit-content",
-//                     padding: "2px 5px",
-//                     borderRadius: "5px",
-//                   }}
-//                 >
-//                   {item.date}
-//                 </div>
-//               </Flex>
-//             </Card>
-//           </Link>
-//           <Flex
-//             align="center"
-//             justify="start"
-//             gap="5px"
-//             style={{ marginLeft: "8px" }}
-//           >
-//             <Text strong>{item.project}:</Text>
-//             <Text>{item.status}</Text>
-//           </Flex>
-//         </Flex>
-//         <Flex
-//           gap="5px"
-//           align="center"
-//           style={{ marginLeft: "20px", padding: "10px 0" }}
-//         >
-//           <Text strong>Nhắc nhở:</Text>
-//           <Text>{item.reminder}</Text>
-//         </Flex>
-//       </Flex>
-//     ),
-//   })),
+const regex = /^([^,]+),(\d+),([^,]+),(\d+)\s(.+)$/;
 
-// ]
+function parseInput(input: string): any {
+  const match = input.match(regex);
+  if (match) {
+    return {
+      workspaceName: match[1].trim(),
+      workspaceId: parseInt(match[2], 10),
+      tableName: match[3].trim(),
+      tableId: parseInt(match[4], 10),
+      message: match[5].trim(),
+    };
+  }
+  return null;
+}
+
+const extractLink = (input: string): { content: string; link: string | null } => {
+  const linkRegex = /(https?:\/\/[^\s]+)/g;
+  const match = input.match(linkRegex);
+
+  if (match) {
+    const link = match[0];
+    const content = input
+      .replace(linkRegex, "")
+      .replace(/link:/i, "")
+      .trim();
+    return {
+      content,
+      link,
+    };
+  }
+
+  return {
+    content: input.replace(/link:/i, "").trim(),
+    link: null,
+  };
+};
 
 export const notificationMenuItems = (data: any[]): MenuProps["items"] => [
   {
@@ -213,74 +168,152 @@ export const notificationMenuItems = (data: any[]): MenuProps["items"] => [
     key: '0',
     disabled: true
   },
-  {
-    type: 'divider',
-  },
-  ...data.map((item: any, index: any) => ({
-    key: `${index + 3}`,
-    label: (
-      <Flex
-        style={{
-          width: "360px",
-          backgroundColor: "gray",
-          borderRadius: "5px",
-        }}
-        vertical
-      >
-        <Flex
-          vertical
-          style={{
-            backgroundColor: "pink",
-            padding: "10px",
-            borderTopLeftRadius: "5px",
-            borderTopRightRadius: "5px",
-          }}
-          gap="5px"
-        >
-          <Link to="work" style={{ display: "block", width: "100%" }}>
-            <Card
-              style={{ width: "100%" }}
-              bodyStyle={{
+  ...data.map((item: any, index: any) => {
+    const parsed = parseInput(item.message);
+    if (!parsed) {
+      const parsed = extractLink(item.message);
+      return {
+        key: `${index + 3}`,
+        label: (
+          <Flex
+            style={{
+              width: "360px",
+              backgroundColor: "gray",
+              borderRadius: "5px",
+            }}
+            vertical
+          >
+            <Flex
+              vertical
+              style={{
+                backgroundColor: "pink",
                 padding: "10px",
+                borderTopLeftRadius: "5px",
+                borderTopRightRadius: "5px",
               }}
+              gap="5px"
             >
-              <Flex vertical justify="start" gap={10}>
-                {item.title}
-                <div
-                  style={{
-                    backgroundColor: "red",
-                    width: "fit-content",
-                    padding: "2px 5px",
-                    borderRadius: "5px",
+              <a href={parsed.link || "#"} target="_blank" rel="noopener noreferrer">
+                <Card
+                  style={{ width: "100%" }}
+                  bodyStyle={{
+                    padding: "10px",
                   }}
                 >
-                  {item.message}
-                </div>
-              </Flex>
-            </Card>
-          </Link>
+                  <Text strong>Tham gia cuộc họp</Text>
+                  <Flex vertical justify="start" gap={10}>
+                    <div
+                      style={{
+                        backgroundColor: "red",
+                        width: "fit-content",
+                        padding: "2px 5px",
+                        borderRadius: "5px",
+                      }}
+                    >
+                      {parsed.content}
+                    </div>
+                  </Flex>
+                </Card>
+              </a >
+            </Flex>
+          </Flex>
+        ),
+      };
+    }
+
+    return {
+      key: `${index + 3}`,
+      label: (
+        <Flex
+          style={{
+            width: "360px",
+            backgroundColor: "gray",
+            borderRadius: "5px",
+          }}
+          vertical
+        >
           <Flex
-            align="center"
-            justify="start"
+            vertical
+            style={{
+              backgroundColor: "pink",
+              padding: "10px",
+              borderTopLeftRadius: "5px",
+              borderTopRightRadius: "5px",
+            }}
             gap="5px"
-            style={{ marginLeft: "8px" }}
           >
-            <Text strong>{item.message}:</Text>
-            <Text>{item.message}</Text>
+            {
+              parsed.tableId === 0 ? (
+                <Link
+                  to={URL.WORKSPACE.BUILDER.TABLE(parsed.workspaceId)}
+                  style={{ display: "block", width: "100%" }}
+                >
+                  <Card
+                    style={{ width: "100%" }}
+                    bodyStyle={{
+                      padding: "10px",
+                    }}
+                  >
+
+                    <Text strong>{parsed.workspaceName}</Text>
+                    <Flex vertical justify="start" gap={10}>
+                      <div
+                        style={{
+                          backgroundColor: "red",
+                          width: "fit-content",
+                          padding: "2px 5px",
+                          borderRadius: "5px",
+                        }}
+                      >
+                        {parsed.message}
+                      </div>
+                    </Flex>
+                  </Card>
+                </Link>
+              ) : (
+                <Link
+                  to={URL.BOARD.BUILDER.LIST(parsed.workspaceId, parsed.tableId)}
+                  style={{ display: "block", width: "100%" }}
+                >
+                  <Card
+                    style={{ width: "100%" }}
+                    bodyStyle={{
+                      padding: "10px",
+                    }}
+                  >
+
+                    <Text strong>{parsed.tableName}</Text>
+                    <Flex vertical justify="start" gap={10}>
+                      <div
+                        style={{
+                          backgroundColor: "red",
+                          width: "fit-content",
+                          padding: "2px 5px",
+                          borderRadius: "5px",
+                        }}
+                      >
+                        {parsed.message}
+                      </div>
+                    </Flex>
+                  </Card>
+                </Link>
+              )
+            }
+
           </Flex>
         </Flex>
-        <Flex
-          gap="5px"
-          align="center"
-          style={{ marginLeft: "20px", padding: "10px 0" }}
-        >
-          <Text strong>Nhắc nhở:</Text>
-          <Text>{item.cardId}</Text>
-        </Flex>
-      </Flex>
-    ),
-  })),
-
+      ),
+    };
+  }),
+  {
+    label:
+      <>
+        <div style={{ height: "30px" }}>
+        </div>
+      </>,
+    key: '0',
+    disabled: true
+  },
 ]
 
 export const chatMenuItems = (data: any[], action: (converSation: any) => void): MenuProps["items"] => [
@@ -293,14 +326,18 @@ export const chatMenuItems = (data: any[], action: (converSation: any) => void):
         }}
         vertical
       >
-        <Flex align="center" gap="10px">
-          <Button type="text" shape="circle"><FiMoreVertical /></Button>
-          <Input placeholder="Tìm kiếm" prefix={<IoSearchOutline size={15} />} style={{ flex: 1, borderRadius: "100px" }} />
+        <Flex align="center" justify="space-between">
+          <Title level={4}>Đoạn chat</Title>
+          <Link to={URL.HOME.MESSAGE}>
+            <Button type="text" shape="circle">
+              <FullscreenOutlined />
+            </Button>
+          </Link>
         </Flex>
       </Flex>
     </>,
     key: '0',
-    disabled: true
+    disabled: false
   },
   ...data.map((item, index) => ({
     label: <>
@@ -344,8 +381,6 @@ const handleLogout = async () => {
   await logout();
 };
 
-
-
 export const userMenuItem: MenuProps["items"] = [
   {
     label: <>
@@ -374,7 +409,7 @@ export const userMenuItem: MenuProps["items"] = [
     key: '1',
   },
 
-]
+];
 
 
 

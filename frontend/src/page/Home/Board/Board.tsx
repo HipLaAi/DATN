@@ -63,8 +63,47 @@ const Board = () => {
               )
             }
           </div>
-          <div className={cx('home-content-bottom')}>
 
+          {
+            workSpaceGuest && workSpaceGuest.length > 0 ? (
+              <div className={cx('home-content-middle')}>
+                <Title level={4} className={cx('home-content-title')}>
+                  Các không gian làm việc khách
+                </Title>
+                {
+                  workSpaceGuest?.map((items: any, index: any) => (
+                    <div key={items.workspace_id}>
+                      <div className={cx('home-content-action')}>
+                        <Avatar src={items.logo} shape="square" style={{ minWidth: "35px", marginRight: "10px" }} />
+                        <Title level={5} className={cx('home-content-title')}>
+                          {items.workspace_name}
+                        </Title>
+                        <Flex align='center' justify='end' gap={12}>
+                          <Button type='text' className={cx('btn')}>Bảng</Button>
+                          <Button type='text' className={cx('btn')}>Thành viên</Button>
+                          <Button type='text' className={cx('btn')}>Cài đặt</Button>
+                        </Flex>
+                      </div>
+                      <div className={cx('home-content-middle-main')}>
+                        {
+                          items?.boards?.map((item: any) => (
+                            <SymbolicTable key={item.board_id} path={URL.BOARD.BUILDER.LIST(items.workspace_id, item.board_id)} title={item.name} background={item?.background?.replace("D:\\DA4\\frontend\\", "")} />
+                          ))
+                        }
+                        {/* <Button style={{ height: "100%" }} onClick={() => showModal(items.workspace_id)}>Tạo bảng</Button> */}
+                      </div>
+                    </div>
+                  )
+                  )
+                }
+              </div>
+            ) : (
+              <></>
+            )
+          }
+
+
+          {/* <div className={cx('home-content-bottom')}>
             {
               workSpaceGuest && workSpaceGuest.length > 0 ? (
                 <>
@@ -91,9 +130,9 @@ const Board = () => {
                 <div></div>
               )
             }
-          </div>
+          </div> */}
 
-          <Button type='text' className={cx('btn', 'btn-view-all')}>Xem tất cả bẳng đã đóng</Button>
+          {/* <Button type='text' className={cx('btn', 'btn-view-all')}>Xem tất cả bẳng đã đóng</Button> */}
 
         </div>
       </div>

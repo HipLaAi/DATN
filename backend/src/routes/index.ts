@@ -18,6 +18,7 @@ import settingCardRouter from './settingCardRouter';
 import commentRouter from './commentRouter';
 import activityLogRouter from './activityLogRouter';
 import meetingRouter from './meetingRouter';
+import notificationRouter from './notificationRouter';
 
 const router = Router();
 router.use('', userRouter);
@@ -37,6 +38,7 @@ router.use('/labelboard', labelBoardRouter);
 router.use('/comment', commentRouter);
 router.use('/activitylog', activityLogRouter);
 router.use('/meeting', meetingRouter);
+router.use('/notification', notificationRouter);
 
 
 export default router;

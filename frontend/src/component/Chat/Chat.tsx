@@ -66,9 +66,6 @@ const ChatApp = (props: any) => {
     }
   };
 
-
-  console.log(messageData);
-
   // load tin nhắn
   useEffect(() => {
     try {

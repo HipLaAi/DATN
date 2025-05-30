@@ -1,14 +1,17 @@
 import { AppSidebar } from "../../components/app-sidebar"
 import { SiteHeader } from "../../components/site-header"
 import { SidebarInset, SidebarProvider } from "../../component/ui/sidebar"
-import { Outlet } from "react-router-dom"
+import { Outlet, useNavigate } from "react-router-dom"
 
 import data from "./data.json"
 import { useEffect, useState } from "react"
 import { getAllUserAPI } from "../../services/User/user.service"
+import decodeJWT from "../../services/Auth/auth.service "
+import { URL } from "../../utils/url"
 
 export default function HomeLayout() {
   const [allUser, setAllUser] = useState<any>();
+  const navigate = useNavigate();
 
   const fetchAllUser = async () => {
     try {
@@ -20,7 +23,18 @@ export default function HomeLayout() {
   };
 
   useEffect(() => {
-    fetchAllUser();
+    const token = localStorage.getItem('accessToken') as string;
+    if (!token) {
+      navigate(URL.HOME.HOME)
+      return;
+    } else {
+      const userInfo = decodeJWT(token);
+      if (userInfo.role === "admin") {
+        fetchAllUser();
+      } else {
+        navigate(URL.HOME.HOME)
+      }
+    }
   }, []);
 
   return (

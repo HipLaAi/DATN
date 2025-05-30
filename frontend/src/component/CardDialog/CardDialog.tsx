@@ -33,7 +33,7 @@ import {
 import CustomPop from './../PopConfirm/PopConfirm';
 import { createCheckListAPI, createCheckListNameAPI, deleteCheckListAPI, deleteCheckListNameAPI, updateCheckListAPI } from '../../services/CheckList/CheckList.service';
 import { createFileAPI, deleteFileAPI } from '../../services/File/File.sevice';
-import { deleteCardByIdAPI, updateInformationCard, updateUserJoinCardAPI, updateUserOutCardAPI } from '../../services/Card/Card.service';
+import { deleteCardByIdAPI, updateInformationCard, updateStatusCardAPI, updateUserJoinCardAPI, updateUserOutCardAPI } from '../../services/Card/Card.service';
 import { toast, ToastOptions } from 'react-toastify';
 import { useParams } from 'react-router-dom';
 import { createLabelAPI, deleteLabelAPI, getLabelBoardAPI } from '../../services/Label/LabelBoard.service';
@@ -44,7 +44,6 @@ import React from 'react';
 import dayjs from "dayjs";
 import { createActivityCardAPI, getActivityCardAPI } from '../../services/ActivityLog/ActivityLog.service';
 import { createCommentAPI, deleteCommentAPI, updateCommentAPI } from '../../services/Comment/Comment.services';
-import { boardDetailReload } from '../../features/reloadSlice';
 
 const cx = classNames.bind(styles);
 
@@ -59,7 +58,9 @@ const CardDialog = (props: any) => {
     const [data, setData] = useState<any>([])
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [checkListName, setCheckListName] = useState<any>("")
-    const [checkList, setCheckList] = useState<any>("")
+    // const [checkList, setCheckList] = useState<any>("")
+    const [checkList, setCheckList] = useState<any>({});
+
     const handleOpenModal = () => setIsModalOpen(true);
     const handleCloseModal = () => setIsModalOpen(false);
     const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -75,6 +76,7 @@ const CardDialog = (props: any) => {
     const [loadingUpload, setLoadingUpload] = useState(false);
     const [loadingFileId, setLoadingFileId] = useState(null); // Theo dõi file đang xóa
     const { confirm } = Modal;
+    const [status, setSatus] = useState<string>(cardData?.status);
 
     const filteredGuests = props?.board?.guest?.filter(
         (guest: any) => !data?.userjoin?.some((user: any) => user.user_id === guest.user_id)
@@ -97,7 +99,7 @@ const CardDialog = (props: any) => {
         const toastOptions: ToastOptions = {
             toastId: message,
             position: "top-right",
-            autoClose: 5000,
+            autoClose: 2000,
             hideProgressBar: false,
             closeOnClick: true,
             pauseOnHover: false,
@@ -115,9 +117,9 @@ const CardDialog = (props: any) => {
 
     // Hàm xử lý upload file
     const handleUploadChange = async (info: any) => {
-        const isLt50MB = info.size / 1024 / 1024 < 50;
-        if (!isLt50MB) {
-            handleNotification("File phải nhỏ hơn 50MB!", "error");
+        const isLt = info.size / 1024 / 1024 < 10;
+        if (!isLt) {
+            handleNotification("File phải nhỏ hơn 10MB!", "error");
             return;
         }
         // Lấy danh sách file từ event
@@ -152,7 +154,6 @@ const CardDialog = (props: any) => {
         } finally {
             setLoadingUpload(false)
         }
-
     };
 
     // hàm cập nhật mô tả thẻ
@@ -177,9 +178,12 @@ const CardDialog = (props: any) => {
 
     //Hàm tạo danh sách công việc
     const handleCreateCheckList = async (idCheckListName: any) => {
+        const checklistName = checkList[idCheckListName];
+
+        if (!checklistName) return;
         const response = await createCheckListAPI({
             checklistname_id: idCheckListName,
-            name: checkList
+            name: checklistName
         })
         const newData = { ...data }
         newData.checklistname.find((ckl: any) => ckl.checklistname_id == idCheckListName)?.checklist?.push(response)
@@ -299,6 +303,7 @@ const CardDialog = (props: any) => {
         handelCreateActivity(`đã cập nhật trạng thái công việc "${name}" của thẻ này`);
     }
 
+    //Hàm xóa file
     const handleDeleteFile = async (id: any) => {
         setLoadingFileId(id);
         try {
@@ -315,6 +320,7 @@ const CardDialog = (props: any) => {
 
     }
 
+    //Hàm comment
     const handleCreateComment = async () => {
         const response = await createCommentAPI({
             card_id: cardData?.card_id,
@@ -334,6 +340,7 @@ const CardDialog = (props: any) => {
         setComment("");
     };
 
+    //hàm xóa comment
     const handleDeleteComment = async (id: any) => {
         await deleteCommentAPI(id);
         const newData = { ...data }
@@ -349,6 +356,7 @@ const CardDialog = (props: any) => {
         if (cardData) {
             setComment("");
             setData(cardData);
+            setSatus(cardData?.status);
             fetchLabelBoard();
             fetchSettingCard(cardData?.card_id);
             fetchActivityLogCard(cardData?.card_id);
@@ -359,7 +367,7 @@ const CardDialog = (props: any) => {
         return
     }
 
-    // Hàm gọi danh sách các label có trong bảng
+    // Hàm gọi setting card
     const fetchSettingCard = async (cardID: any) => {
         try {
             const results = await getSettingCardAPI(cardID);
@@ -385,7 +393,9 @@ const CardDialog = (props: any) => {
                 card_id: cardID
             })
             const newData = { ...data }
-            response.checklist = []
+            if (!Array.isArray(newData.label)) {
+                newData.label = [];
+            }
             newData.label.push(response)
             setData(newData)
         } catch (error) {
@@ -487,13 +497,32 @@ const CardDialog = (props: any) => {
         }
     }
 
+
+    // Hàm cập nhật trạng thái thẻ
+    const handelStatusCard = async (newStatus: boolean) => {
+        try {
+            const statusStr = newStatus ? 'true' : 'false';
+            await updateStatusCardAPI(cardData?.card_id, { status: statusStr });
+            setSatus(statusStr);
+            handleNotification("Cập nhật trạng thái thành công!", "success");
+        } catch (error) {
+            handleNotification("Đã xảy ra lỗi. Vui lòng thử lại!", "error");
+        }
+    };
+
     return (
         <>
             <Modal width={900} footer={null} open={props.isModalOpen} onCancel={props.handleToggleModal} title={
                 <Row align="middle" justify="space-between">
                     <Col>
                         <Flex vertical justify='center' gap="10px">
-                            <Title level={4}>{data?.name}</Title>
+                            <Flex justify="start" align="center" gap={10}>
+                                <Checkbox
+                                    checked={status === 'true'}
+                                    onChange={(e) => handelStatusCard(e.target.checked)}
+                                />
+                                <Title level={4}>{data?.name}</Title>
+                            </Flex>
                             <Text type="secondary">Trong danh sách {data?.column_name}</Text>
                             <Flex>
                                 {
@@ -895,7 +924,18 @@ const CardDialog = (props: any) => {
                                                             )
                                                         }
                                                         <Flex vertical gap="10px" style={{ marginTop: "10px" }}>
-                                                            <Input placeholder='Thêm một mục' value={checkList} onChange={(e) => setCheckList(e.target.value)} />
+                                                            <Input
+                                                                placeholder='Thêm một mục'
+                                                                // value={checkList} 
+                                                                // onChange={(e) => setCheckList(e.target.value)} 
+                                                                value={checkList[item?.checklistname_id] || ""} // Lấy giá trị tương ứng từ state
+                                                                onChange={(e) =>
+                                                                    setCheckList({
+                                                                        ...checkList,
+                                                                        [item?.checklistname_id]: e.target.value, // Cập nhật giá trị riêng cho từng checklistname
+                                                                    })
+                                                                }
+                                                            />
                                                             <Button style={{ width: "fit-content" }} type='primary' onClick={() => handleCreateCheckList(item?.checklistname_id)}>Thêm một mục</Button>
                                                         </Flex>
                                                     </div>
@@ -917,7 +957,7 @@ const CardDialog = (props: any) => {
                                     props?.setting?.map((item: any) => {
                                         if (item?.action === "comment") {
                                             const hasPermission =
-                                                item.permission === "all guest" ||
+                                                (item.permission === "all guest" && props?.board?.role != null) ||
                                                 (item.permission === "just admin" && props?.board?.role === "own");
 
                                             return hasPermission ? (
@@ -1400,7 +1440,7 @@ const CardDialog = (props: any) => {
                                 props?.setting?.map((item: any) => {
                                     if (item?.action === "delete") {
                                         const hasPermission =
-                                            item.permission === "all guest" ||
+                                            (item.permission === "all guest" && props?.board?.role != null) ||
                                             (item.permission === "just admin" && props?.board?.role === "own");
 
                                         return hasPermission ? (
@@ -1499,7 +1539,7 @@ const CardDialog = (props: any) => {
                     </Col>
                 </Row>
             </Modal >
-            <DateModal isModalDate={true} isOpen={isModalOpen} onClose={handleCloseModal} start_date={data?.start_date} end_date={data?.end_date} timer={data?.timer} card_id={data?.card_id} />
+            <DateModal handleNotification={handleNotification} isModalDate={true} isOpen={isModalOpen} onClose={handleCloseModal} start_date={data?.start_date} end_date={data?.end_date} timer={data?.timer} card_id={data?.card_id} />
         </>
     );
 };

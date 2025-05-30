@@ -14,6 +14,7 @@ import { SocketService } from '../../services/Socket/Socket.service';
 import ChatAI from '../../component/Chat/ChatAI/ChatAI';
 import { CloseOutlined, OpenAIOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
+import { URL } from '../../utils/url';
 
 const cx = classNames.bind(styles);
 const { Title } = Typography;
@@ -24,8 +25,7 @@ const BoardLayout = () => {
   const [isopenChat, setIsOpenChat] = useState(false)
   const [converSation, setConverSation] = useState<any>()
   const navigate = useNavigate();
-  const token = localStorage.getItem('accessToken') as string;
-  const userInfo = decodeJWT(token);
+  const [userInfo, setUserInfo] = useState<any>()
   const [workSpaceMember, setWorkSpaceMember] = useState<any[]>([])
   const [workSpaceGuest, setWorkSpaceGuest] = useState<any[]>([])
 
@@ -37,9 +37,9 @@ const BoardLayout = () => {
   useEffect(() => {
     const socket = SocketService.connect();
     if (socket) {
-      socket.emit("activeUser", userInfo.user_id);
+      socket.emit("activeUser", userInfo?.user_id);
     }
-  }, [userInfo]);
+  }, [userInfo?.user_id]);
 
   // Hàm xử lý mở hộp thoại chat AI
   const handleOPenChatAI = () => {
@@ -70,9 +70,7 @@ const BoardLayout = () => {
         setWorkSpaceMember([])
       }
     } catch (error: any) {
-      if (error.response?.status === 403) {
-        navigate("/login")
-      }
+      console.error(error)
     }
   }
 
@@ -100,12 +98,13 @@ const BoardLayout = () => {
 
   const [boardFilter, setBoardFilter] = useState<any[]>([]);
 
-  const handleFillter = async (boardID: any, userID: any) => {
-    if (userID == "") {
+  const handleFillter = async (boardID: any, userID: any, cardStatus: any) => {
+    if (userID == "" && cardStatus == "") {
       setBoardFilter([]);
     } else {
       const reponse = await getBoardByCustomAPI(boardID, {
-        user_id: userID
+        user_id: userID,
+        card_status: cardStatus,
       })
       setBoardFilter(reponse);
     }
@@ -115,12 +114,32 @@ const BoardLayout = () => {
 
   const handleCreateConversation = async (userID: any) => {
     const reponse = await createconverSationAPI({
-      user_id_1: userInfo.user_id,
+      user_id_1: userInfo?.user_id,
       user_id_2: userID
     })
     handleOPenChat(reponse || []);
     setResetConverSation((value: any) => !value);
   }
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      navigate(URL.AUTH.LOGIN);
+      return;
+    }
+
+    try {
+      const userInfo = decodeJWT(token);
+      if (userInfo.role === "user") {
+        setUserInfo(userInfo);
+      } else {
+        navigate(URL.AUTH.LOGIN);
+      }
+    } catch (error) {
+      navigate(URL.AUTH.LOGIN);
+    }
+  }, []);
+
 
   return (
     <>
@@ -151,7 +170,7 @@ const BoardLayout = () => {
         }
       />
       {
-        isopenChatAI && <ChatAI workSpaceMember={workSpaceMember} handleOPenChatAI={handleOPenChatAI}/>
+        isopenChatAI && <ChatAI workSpaceMember={workSpaceMember} handleOPenChatAI={handleOPenChatAI} />
       }
 
       <Layout className={cx('layout')}>

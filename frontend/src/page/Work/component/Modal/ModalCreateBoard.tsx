@@ -53,7 +53,7 @@ const ModalCreateBoard = (props: any) => {
         try {
           const reponse = await createBoardAPI(formData)
           dispatch(boardReload());
-          navigate("/workspace/" + props.idWorkspace + URL.BOARD + reponse.board_id)
+          navigate(URL.BOARD.BUILDER.LIST(props.idWorkspace,reponse.board_id))
         } catch (error) {
           console.error("Error creating workspace:", error);
         } finally {
@@ -66,7 +66,7 @@ const ModalCreateBoard = (props: any) => {
         setLoading(false);
       });
   }
-  
+
   const handleSubmit = () => {
     form.submit();
   };
@@ -319,6 +319,7 @@ const ModalCreateBoard = (props: any) => {
           >
             <Upload listType="picture-circle"
               maxCount={1}
+              accept="image/*"
               beforeUpload={(file) => {
                 setLogo(file);
                 return false;

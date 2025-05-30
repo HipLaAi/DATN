@@ -61,4 +61,12 @@ export class CardService {
     async getCardInWeek(user_id: string): Promise<any> {
         return this.cardReponsitory.getCardInWeek(user_id);
     }
+
+    async getCardDetailsInWeek(user_id: string): Promise<any> {
+        return this.cardReponsitory.getCardDetailsInWeek(user_id);
+    }
+
+    async updateStatusCard(card: CardModel): Promise<any> {
+        return this.cardReponsitory.updateStatusCard(card);
+    }
 }

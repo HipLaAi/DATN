@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Avatar, Button, Card, Flex, Select, Typography } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import ReactQuill from 'react-quill';
@@ -8,18 +8,35 @@ import { boardDetailReload, boardReload } from '../../../features/reloadSlice';
 import { updateBackgroundBoardAPI, updateIBoardAPI } from '../../../services/Board/board.sevice';
 import { useNavigate, useParams } from 'react-router-dom';
 import { URL } from '../../../utils/url';
+import { getWorkSpaceMemberByIdUserAPI } from '../../../services/WorkSpace/workSapce.service';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const BoardInfo = (props: any) => {
   const { id } = useParams()
-  const { board, workSpaceMember, handleDataBoardChange } = props;
+  const { board, handleDataBoardChange } = props;
   const [isEditing, setIsEditing] = useState(false);
   const [description, setDescription] = useState(board?.description);
   const dispatch = useDispatch();
   const [isUploading, setIsUploading] = useState(false);
   const navigate = useNavigate();
+  const [workSpaceMember, setWorkSpaceMember] = useState<any[]>([])
+
+  // API Lấy các không gian làm việc theo id user
+  const fetchWorkSapceMemberByUserID = async () => {
+    try {
+      const response = await getWorkSpaceMemberByIdUserAPI()
+      if (!response.message) {
+        setWorkSpaceMember(response)
+      }
+      else {
+        setWorkSpaceMember([])
+      }
+    } catch (error: any) {
+      console.error(error)
+    }
+  }
 
   const handleSave = async () => {
     try {
@@ -78,6 +95,10 @@ const BoardInfo = (props: any) => {
     }
   }
 
+  useEffect(() => {
+    fetchWorkSapceMemberByUserID()
+  }, []);
+
   return (
     <div style={{ margin: 0, padding: 0, border: "none", backgroundColor: "rgb(249 250 251 / var(--tw-bg-opacity, 1))" }}>
       <Flex align="center" gap={8} style={{ display: 'flex', alignItems: 'center', margin: "20px 0" }}>
@@ -107,24 +128,28 @@ const BoardInfo = (props: any) => {
         ))
       }
 
-      <div style={{ margin: "20px 0" }}>
-        <Title level={5} style={{ margin: 0 }}>
-          Không gian làm việc
-        </Title>
-        <Select
-          defaultValue={board?.workspace_id}
-          placeholder="Chọn không gian làm việc"
-          style={{ width: '100%', margin: "5px 0" }}
-          getPopupContainer={(trigger: any) => trigger.parentNode}
-          onChange={(value) => handleInputChange(value)}
-        >
-          {workSpaceMember?.map((option: any) => (
-            <Option key={option.workspace_id} value={option.workspace_id}>
-              {option.workspace_name}
-            </Option>
-          ))}
-        </Select>
-      </div>
+      {
+        (board?.role === "own" && workSpaceMember.some((workspace: any) => workspace.workspace_id === board?.workspace_id && workspace.role === "own")) ? (
+          <div style={{ margin: "20px 0" }}>
+            <Title level={5} style={{ margin: 0 }}>
+              Không gian làm việc
+            </Title>
+            <Select
+              defaultValue={board?.workspace_id}
+              placeholder="Chọn không gian làm việc"
+              style={{ width: '100%', margin: "5px 0" }}
+              getPopupContainer={(trigger: any) => trigger.parentNode}
+              onChange={(value) => handleInputChange(value)}
+            >
+              {workSpaceMember?.map((option: any) => (
+                <Option key={option.workspace_id} value={option.workspace_id}>
+                  {option.workspace_name}
+                </Option>
+              ))}
+            </Select>
+          </div>
+        ) : (<></>)
+      }
 
       <div style={{ margin: "20px 0" }}>
         <Title level={5}>Mô tả</Title>

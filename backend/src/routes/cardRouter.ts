@@ -93,5 +93,16 @@ cardRouter.get(
     cardController.getCardInWeek.bind(cardController)
 );
 
+cardRouter.get(
+    '/getcarddetailsinweek',
+    authenticate,
+    cardController.getCardDetailsInWeek.bind(cardController)
+);
+
+cardRouter.post(
+    '/updatestatuscard/:id',
+    authenticate,
+    cardController.updateStatusCard.bind(cardController)
+);
 
 export default cardRouter;

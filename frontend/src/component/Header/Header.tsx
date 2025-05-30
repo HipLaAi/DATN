@@ -21,14 +21,21 @@ const cx = classNames.bind(styles);
 
 const Header = (props: any) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const avatar = localStorage.getItem("avatar");
-  const name = localStorage.getItem("name");
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState<string>("");
   const [board, setBoard] = useState<any[]>([]);
   const [workspace, setWorkspace] = useState<any[]>([]);
   const debouncedSearch = useDebounce(search, 500);
   const navigate = useNavigate();
+
+  const [avatar, setAvatar] = useState<any>();
+  const [name, setname] = useState<any>();
+  useEffect(() => {
+    const avatar = localStorage.getItem("avatar");
+    setAvatar(avatar);
+    const name = localStorage.getItem("name");
+    setname(name);
+  }, []);
 
   const fetchSearchUser = async (debouncedSearch: any) => {
     setLoading(true);
@@ -112,20 +119,21 @@ const Header = (props: any) => {
           <Col span={12}>
             <Flex align="center" justify="center" gap={10}>
 
-              <SheetSide
+              {/* <SheetSide
                 side="bottom"
-                // width={500}
-                // height="90vh"
+                width={500}
+                height="90vh"
                 triggerIcon={<CalendarOutlined size={20} />}
-                // triggerText="Quản lý thành viên"
-                // triggerProps={{ type: "default", size: "large" }}
-                // title="Quản lý thành viên"
-                // description="Thêm/xóa thành viên khỏi workspace"
-                // showFooter
+                triggerText="Quản lý thành viên"
+                triggerProps={{ type: "default", size: "large" }}
+                title="Quản lý thành viên"
+                description="Thêm/xóa thành viên khỏi workspace"
+                showFooter
                 contentClassName="bg-gray-50"
               >
                 <Calendar events={events} />
-              </SheetSide>
+                <Calendar />
+              </SheetSide> */}
 
               <Input
                 placeholder="Tìm kiếm"
@@ -136,7 +144,7 @@ const Header = (props: any) => {
                 spellCheck={false}
               />
 
-              {/* test */}
+              {/* Tìm kiếm */}
               {!loading ? (
                 debouncedSearch.length > 2 && (
                   <div
@@ -206,11 +214,6 @@ const Header = (props: any) => {
               ) : (
                 <Spin style={{ marginTop: "10px" }} />
               )}
-
-
-
-
-
               <Button type="primary" onClick={showModal}>Tạo mới không gian làm việc</Button>
             </Flex>
           </Col>

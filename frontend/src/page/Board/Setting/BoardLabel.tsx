@@ -165,7 +165,6 @@ const BoardLabel = () => {
                             {editIndex === item?.labelboard_id && (
                                 <Flex gap={10}>
                                     <Input
-                                        spellCheck={false}
                                         onBlur={() => setEditIndex(null)}
                                         onPressEnter={() => setEditIndex(null)}
                                         placeholder="Nhập tiêu đề"

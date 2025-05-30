@@ -8,7 +8,6 @@ import { URL } from '../../../utils/url';
 import { useDispatch } from 'react-redux';
 import { boardReload } from '../../../features/reloadSlice';
 
-
 const ModalHeader = (props: any) => {
   const [logo, setLogo] = useState<File | null>(null)
   const [loading, setLoading] = useState(false);
@@ -32,7 +31,7 @@ const ModalHeader = (props: any) => {
         try {
           const response = await createWorkSpacedAPI(formData);
           dispatch(boardReload());
-          navigate(URL.WORKSPACE + response.workspace_id);
+          navigate(URL.WORKSPACE.BUILDER.TABLE(response.workspace_id));
         } catch (error) {
           console.error("Error creating workspace:", error);
         } finally {
@@ -120,6 +119,7 @@ const ModalHeader = (props: any) => {
           <Form.Item name="files">
             <Upload listType="picture-circle"
               maxCount={1}
+              accept="image/*"
               beforeUpload={(file) => {
                 setLogo(file);
                 return false;

@@ -5,6 +5,11 @@ export const URL = {
     VERIFICATIONEMAIL: '/verificationemail',
     INFORACCOUNT: '/inforaccount',
   },
+  ADMIN: {
+    HOME: '/admin/dashboard',
+    USER: '/admin/user',
+    REPORT: '/admin/report'
+  },
   HOME: {
     HOME: '/',
     BOARD: '/board',

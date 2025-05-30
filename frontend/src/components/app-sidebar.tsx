@@ -2,19 +2,12 @@ import * as React from "react"
 import {
   ArrowUpCircleIcon,
   BarChartIcon,
-  CameraIcon,
   ClipboardListIcon,
   DatabaseIcon,
-  FileCodeIcon,
-  FileIcon,
-  FileTextIcon,
-  FolderIcon,
   HelpCircleIcon,
   LayoutDashboardIcon,
-  ListIcon,
   SearchIcon,
   SettingsIcon,
-  UsersIcon,
 } from "lucide-react"
 
 import { NavDocuments } from "../components/nav-documents"
@@ -32,6 +25,8 @@ import {
 } from "../component/ui/sidebar"
 import { Link } from "react-router-dom"
 import { BsTrello } from "react-icons/bs"
+import decodeJWT from "../services/Auth/auth.service "
+import { useEffect, useState } from "react"
 
 const data = {
   user: {
@@ -46,111 +41,63 @@ const data = {
       icon: LayoutDashboardIcon,
     },
     {
-      title: "Lifecycle",
-      url: "#",
-      icon: ListIcon,
-    },
-    {
       title: "Analytics",
       url: "#",
       icon: BarChartIcon,
     },
-    {
-      title: "Projects",
-      url: "#",
-      icon: FolderIcon,
-    },
-    {
-      title: "Quản lý người dùng",
-      url: "admin/user",
-      icon: UsersIcon,
-    },
   ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: CameraIcon,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: FileTextIcon,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: FileCodeIcon,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
+
   navSecondary: [
     {
-      title: "Settings",
+      title: "Cài đặt",
       url: "#",
       icon: SettingsIcon,
     },
     {
-      title: "Get Help",
+      title: "Giúp đỡ",
       url: "#",
       icon: HelpCircleIcon,
     },
     {
-      title: "Search",
+      title: "Tìm kiếm",
       url: "#",
       icon: SearchIcon,
     },
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
+      name: "Dữ liệu người dùng",
+      url: "admin/user",
       icon: DatabaseIcon,
     },
     {
-      name: "Reports",
-      url: "#",
+      name: "Báo cáo",
+      url: "admin/report",
       icon: ClipboardListIcon,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: FileIcon,
     },
   ],
 }
 
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    const avatar = localStorage.getItem("avatar");
+    const name = localStorage.getItem("name");
+
+    if (token) {
+      const userInfo = decodeJWT(token);
+      setUserData({
+        name: name,
+        email: userInfo?.email,
+        avatar: avatar,
+      });
+    }
+  }, []);
+
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -178,7 +125,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>
   )

@@ -23,10 +23,12 @@ import CustomPop from "../../../component/PopConfirm/PopConfirm";
 import { getSettingWorkspaceAPI } from "../../../services/Setting/settingWorkspace.service";
 import { getWorkSpacedByIdAPI } from "../../../services/WorkSpace/workSapce.service";
 import { useNavigate, useParams } from "react-router-dom";
-import { deleteBoardAPI } from "../../../services/Board/board.sevice";
+import { deleteBoardAPI, deleteGuestAPI } from "../../../services/Board/board.sevice";
 import { URL } from "../../../utils/url";
 import { useDispatch } from "react-redux";
 import { boardReload } from "../../../features/reloadSlice";
+import { toast, ToastOptions } from 'react-toastify';
+import decodeJWT from "../../../services/Auth/auth.service ";
 
 
 const groupedItems = [
@@ -149,6 +151,62 @@ const MenuComponent: React.FC<MenuComponentProps> = ({ setActiveMenu, board }) =
         }
     }
 
+    // Modal thông báo
+    const handleNotification = (message: string, status: "success" | "error") => {
+        const toastOptions: ToastOptions = {
+            toastId: message,
+            position: "top-right",
+            autoClose: 1000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
+        };
+
+        const toastActions = {
+            success: () => toast?.success(message, toastOptions),
+            error: () => toast?.error(message, toastOptions),
+        };
+
+        toastActions[status]?.();
+    };
+
+    // hàm kiểm tra số lượng quản trị viên
+    const checkOwn = (userID: any): boolean => {
+        const countOwnRoles = board?.guest.filter((item: any) => item.role === "own").length;
+
+        const currentUser = board?.guest.find((item: any) => item.user_id === userID);
+
+        if (countOwnRoles === 1 && currentUser?.role === "own") {
+            handleNotification("Phải có ít nhất một Quản trị viên trong bảng.", "error");
+            return false;
+        }
+
+        return true;
+    };
+
+    // API xóa thành viên
+    const handleDeleteGuest = async () => {
+        const token = localStorage.getItem('accessToken') as string;
+        const userInfo = decodeJWT(token);
+        const userID = userInfo.user_id;
+        if (!checkOwn(userID)) {
+            return;
+        }
+        try {
+            await deleteGuestAPI(board?.board_id, {
+                user_id: userID
+            })
+            handleNotification("Xóa thành công.", "success");
+            navigate(URL.HOME.BOARD);
+            dispatch(boardReload());
+        } catch (error) {
+            handleNotification("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
+        }
+    }
+
+
     // Gọi API lấy thông tin không gian làm việc
     const fetchWorkSpaceDetails = async () => {
         const reponse = await getWorkSpacedByIdAPI(idWorkspace)
@@ -182,6 +240,22 @@ const MenuComponent: React.FC<MenuComponentProps> = ({ setActiveMenu, board }) =
         });
     }
 
+    const showDeleteGuestConfirm = () => {
+        confirm({
+            title: 'Bạn có chắc chắn muốn rời khỏi bảng này?',
+            icon: <ExclamationCircleFilled />,
+            content: 'Hành động này không thể hoàn tác. Tất cả dữ liệu sẽ bị xóa vĩnh viễn.',
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk() {
+                handleDeleteGuest();
+            },
+            onCancel() {
+            },
+        });
+    }
+
     useEffect(() => {
         getSettingWorkspace();
         fetchWorkSpaceDetails();
@@ -204,19 +278,38 @@ const MenuComponent: React.FC<MenuComponentProps> = ({ setActiveMenu, board }) =
             >
                 Thông tin bảng
             </Button>
-            <Button
-                type="text"
-                style={{
-                    fontSize: "16px",
-                    height: "50px",
-                    width: "100%",
-                    justifyContent: "flex-start"
-                }}
-                icon={<SettingOutlined />}
-                onClick={() => setActiveMenu("Cài đặt")}
-            >
-                Cài đặt
-            </Button>
+            {
+                board?.role === "own" ? (
+                    <Button
+                        type="text"
+                        style={{
+                            fontSize: "16px",
+                            height: "50px",
+                            width: "100%",
+                            justifyContent: "flex-start"
+                        }}
+                        icon={<SettingOutlined />}
+                        onClick={() => setActiveMenu("Cài đặt")}
+                    >
+                        Cài đặt
+                    </Button>
+                ) : (
+                    <Button
+                        type="text"
+                        style={{
+                            fontSize: "16px",
+                            height: "50px",
+                            width: "100%",
+                            justifyContent: "flex-start"
+                        }}
+                        icon={<SettingOutlined />}
+                        disabled
+                    >
+                        Cài đặt
+                    </Button>
+                )
+            }
+
             <Button
                 type="text"
                 style={{
@@ -230,19 +323,37 @@ const MenuComponent: React.FC<MenuComponentProps> = ({ setActiveMenu, board }) =
             >
                 Nhãn
             </Button>
-            <Button
-                type="text"
-                style={{
-                    fontSize: "16px",
-                    height: "50px",
-                    width: "100%",
-                    justifyContent: "flex-start"
-                }}
-                icon={<UserOutlined />}
-                onClick={() => setActiveMenu("Thành viên")}
-            >
-                Thành viên
-            </Button>
+            {
+                board?.role === "own" ? (
+                    <Button
+                        type="text"
+                        style={{
+                            fontSize: "16px",
+                            height: "50px",
+                            width: "100%",
+                            justifyContent: "flex-start"
+                        }}
+                        icon={<UserOutlined />}
+                        onClick={() => setActiveMenu("Thành viên")}
+                    >
+                        Thành viên
+                    </Button>
+                ) : (
+                    <Button
+                        type="text"
+                        style={{
+                            fontSize: "16px",
+                            height: "50px",
+                            width: "100%",
+                            justifyContent: "flex-start"
+                        }}
+                        icon={<UserOutlined />}
+                        disabled
+                    >
+                        Thành viên
+                    </Button>
+                )
+            }
             <Button
                 type="text"
                 style={{
@@ -257,7 +368,7 @@ const MenuComponent: React.FC<MenuComponentProps> = ({ setActiveMenu, board }) =
                 In, xuất và chia sẻ
             </Button>
             {
-                ["public", "workspace", "private"].includes(board?.status) &&
+                ["public", "workspace", "private"].includes(board?.status) && board?.role != null &&
                     setting?.setting
                         ?.filter((item: any) => item.action === "deleteboard")
                         ?.some((item: any) =>
@@ -322,7 +433,7 @@ const MenuComponent: React.FC<MenuComponentProps> = ({ setActiveMenu, board }) =
                             justifyContent: "flex-start"
                         }}
                         icon={<LogoutOutlined />}
-                        onClick={() => setActiveMenu("Thành viên")}
+                        onClick={showDeleteGuestConfirm}
                     >
                         Rời khỏi bảng
                     </Button>

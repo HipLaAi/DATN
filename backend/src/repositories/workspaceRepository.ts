@@ -96,10 +96,11 @@ export class WorkspaceReponsitory {
 
     async createMember(workspace: WorkspaceModel): Promise<any> {
         try {
-            const sql = 'call CreateMember(?, ?, @err_code, @err_msg)';
+            const sql = 'call CreateMember(?, ?, ?, @err_code, @err_msg)';
             await this.db.query(sql, [
                 workspace.workspace_id,
                 workspace.user_id,
+                workspace.role
             ]);
 
             return true;

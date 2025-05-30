@@ -74,7 +74,7 @@ const ListColumn: React.FC<Props> = ({ columns }) => {
                   setting?.map((item: any) => {
                     if (item?.action === "create") {
                       const hasPermission =
-                        item.permission === "all guest" ||
+                        (item.permission === "all guest" && board?.role != null) ||
                         (item.permission === "just admin" && board?.role === "own");
 
                       return hasPermission ? (

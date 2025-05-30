@@ -1,11 +1,11 @@
-import { Col, Row, Flex, Button, Dropdown, Avatar, Typography, Menu, Radio, Space, Input } from "antd";
+import { Col, Row, Flex, Button, Dropdown, Avatar, Typography, Menu, Radio, Space, Input, message } from "antd";
 import style from './BoardBar.module.scss';
 import classNames from "classnames/bind";
 import { FaRegStar } from "react-icons/fa";
 import { IoPeople } from "react-icons/io5";
 import { IoFilterSharp } from "react-icons/io5";
 import { IoIosMore } from "react-icons/io";
-import { DeleteOutlined, DeleteRowOutlined, GlobalOutlined, InfoCircleOutlined, LeftOutlined, LockOutlined, MailOutlined, MessageOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined, DeleteRowOutlined, GlobalOutlined, InfoCircleOutlined, LeftOutlined, LockOutlined, MailOutlined, MessageOutlined, PlusOutlined, TagOutlined, UserOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import CustomPop from "../../../component/PopConfirm/PopConfirm";
 import { useEffect, useState } from "react";
@@ -23,6 +23,8 @@ import BoardLabel from "../Setting/BoardLabel";
 import { URL } from "../../../utils/url";
 import ExportComponent from "../Setting/BoardShare";
 import BoardGuest from "../Setting/BoardGuest";
+import { createNotificationAPI } from "../../../services/Notification/Notification.service";
+import { getLabelBoardAPI } from "../../../services/Label/LabelBoard.service";
 
 const cx = classNames.bind(style);
 const { Title, Text } = Typography
@@ -34,12 +36,14 @@ const BoardBar = (props: any) => {
   const [guest, setGuest] = useState(props.board?.guest);
   const [openModal, setOpenModal] = useState(false);
   const token = localStorage.getItem('accessToken') as string;
+  const userName = localStorage.getItem('name') as string;
   const userInfo = decodeJWT(token);
   const userID = userInfo.user_id;
   const [activeMenu, setActiveMenu] = useState<string>("Menu");
   const [isEditing, setIsEditing] = useState(false);
   const { handleFillter, handleCreateConversation } = useOutletContext<{ handleFillter: any, handleCreateConversation: any }>();
   const [selectedValue, setSelectedValue] = useState<number | string | null>("");
+  const [selectedCardStatus, setSelectedCardStatus] = useState<number | string | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
@@ -48,12 +52,18 @@ const BoardBar = (props: any) => {
   const handleReset = () => {
     props.setCheckUpdateColumn((value: any) => !value);
     setSelectedValue("");
-    handleFillter(id, "");
+    setSelectedCardStatus(null);
+    handleFillter(id, "", "");
   }
 
   const handleSelect = (id: any, value: any) => {
     setSelectedValue(value);
-    handleFillter(id, value);
+    handleFillter(id, value, selectedCardStatus);
+  };
+
+  const handleSelectCardStatus = (id: any, value: any) => {
+    setSelectedCardStatus(value);
+    handleFillter(id, selectedValue, value);
   };
 
   useEffect(() => {
@@ -85,6 +95,16 @@ const BoardBar = (props: any) => {
           board_id: id,
           role: role,
         });
+        let nameRole = "";
+        if (role === "own") {
+          nameRole = "quản trị viên"
+        } else if (role === "guest") {
+          nameRole = "thành viên"
+        }
+        await createNotificationAPI({
+          user_id: item?.user_id.toString(),
+          message: `/,${idWorkspace},${board?.name},${id} ${userName} đã thêm bạn vào bảng ${board?.name} là ${nameRole}`
+        })
         newGuest.push(response);
       } catch (error) {
         console.error(error);
@@ -191,6 +211,22 @@ const BoardBar = (props: any) => {
       description: "Bất kỳ ai đều có thể xem bảng thông tin này, chỉ thành viên bảng mới có thể chỉnh sửa bảng thông tin này."
     },
   ];
+
+  const handleInvite = async () => {
+    const newGuest = [...guest];
+    try {
+      const response = await createGuestdAPI({
+        user_id: userID,
+        board_id: id,
+        role: "guest",
+      });
+      newGuest.push(response);
+    } catch (error) {
+      console.error(error);
+    }
+    setGuest(newGuest);
+    dispatch(boardDetailReload());
+  };
 
   return (
     <>
@@ -362,6 +398,7 @@ const BoardBar = (props: any) => {
             </>} content={
               <>
                 <Flex vertical gap="10px" style={{ marginBottom: "20px" }}>
+                  {/* Lọc Theo thành viên tham gia */}
                   <Text strong>Thành viên</Text>
                   <Radio.Group
                     value={selectedValue}
@@ -385,6 +422,24 @@ const BoardBar = (props: any) => {
                       }
                     </Space>
                   </Radio.Group>
+                  {/* Lọc Theo thành viên tham gia */}
+                  <Text strong>Trạng thái thẻ</Text>
+                  <Radio.Group
+                    value={selectedCardStatus}
+                    onChange={(e) => handleSelectCardStatus(id, e.target.value)}>
+                    <Space direction="vertical">
+                      <Radio value={"true"}>
+                        <Flex justify="center" gap="10px" align="center">
+                          <Text>Đã hoàn thành</Text>
+                        </Flex>
+                      </Radio>
+                      <Radio value={"false"}>
+                        <Flex justify="center" gap="10px" align="center">
+                          <Text>Chưa hoàn thành</Text>
+                        </Flex>
+                      </Radio>
+                    </Space>
+                  </Radio.Group>
                 </Flex>
                 <Flex vertical gap="10px">
                   <Button
@@ -393,7 +448,6 @@ const BoardBar = (props: any) => {
                     Bỏ lọc
                   </Button>
                 </Flex>
-
               </>
             } >
               <Button type="text" title="Bộ lọc">
@@ -403,9 +457,57 @@ const BoardBar = (props: any) => {
             </CustomPop>
 
             {/* Nút thêm khách */}
-            <Button type="text" shape="circle" onClick={() => handleOpenModal()} title="Mời tham gia">
-              <PlusOutlined size={18} />
-            </Button>
+
+
+            {/* {
+              setting?.map((item: any) => {
+                if (item?.action === "guest") {
+                  const hasPermission =
+                    item.permission === "all guest" ||
+                    (item.permission === "just admin" && board?.role === "own");
+
+                  return hasPermission ? (
+                    <Button type="text" shape="circle" onClick={() => handleOpenModal()} title="Mời tham gia">
+                      <PlusOutlined size={18} />
+                    </Button>
+                  ) : (<></>);
+                }
+                return null;
+              })
+            } */}
+            {
+              setting?.map((item: any) => {
+                if (item?.action === "guest") {
+                  const hasPermission =
+                    item.permission === "all guest" ||
+                    (item.permission === "just admin" && board?.role === "own");
+
+                  if (hasPermission) {
+                    return board?.role === null ? (
+                      <Button
+                        type="text"
+                        shape="circle"
+                        onClick={() => handleInvite()}
+                        style={{ padding: "5px" }}
+                      >
+                        Tham gia
+                      </Button>
+                    ) : (
+                      <Button
+                        type="text"
+                        shape="circle"
+                        onClick={() => handleOpenModal()}
+                        title="Mời tham gia"
+                      >
+                        <PlusOutlined size={18} />
+                      </Button>
+                    );
+                  }
+                }
+                return null;
+              })
+            }
+
 
             {/* Hiển thị khách tham gia bảng */}
             <Avatar.Group>

@@ -26,7 +26,7 @@ const TableWorkPage = () => {
             Bảng
           </Title>
           <Flex vertical>
-            <Flex justify="space-between">
+            {/* <Flex justify="space-between">
               <Flex gap={10}>
                 <Flex vertical>
                   <Text strong>Sắp sếp theo</Text>
@@ -58,7 +58,7 @@ const TableWorkPage = () => {
                 <Text strong>Tìm kiếm</Text>
                 <Input placeholder="Tìm kiếm" prefix={<IoSearchOutline size={15} />} />
               </Flex>
-            </Flex>
+            </Flex> */}
             <div className={cx('middle-main')}>
               {data?.role === "own" || data?.role === "member" ? (
                 <Button style={{ height: "100%" }} onClick={showModal}>Tạo bảng</Button>

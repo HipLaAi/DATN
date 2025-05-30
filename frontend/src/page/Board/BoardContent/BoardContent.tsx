@@ -270,7 +270,7 @@ const BoardContent: React.FC = () => {
             item.action === "move" &&
             (
               (item.permission === "just admin" && board?.role === "own") ||
-              item.permission === "all guest"
+              (item.permission === "all guest" && board?.role != null)
             )
           )
             ? handleDragStart
@@ -281,7 +281,7 @@ const BoardContent: React.FC = () => {
             item.action === "move" &&
             (
               (item.permission === "just admin" && board?.role === "own") ||
-              item.permission === "all guest"
+              (item.permission === "all guest" && board?.role != null)
             )
           )
             ? handleDragOver
@@ -292,7 +292,7 @@ const BoardContent: React.FC = () => {
             item.action === "move" &&
             (
               (item.permission === "just admin" && board?.role === "own") ||
-              item.permission === "all guest"
+              (item.permission === "all guest" && board?.role != null)
             )
           )
             ? handleDragEnd

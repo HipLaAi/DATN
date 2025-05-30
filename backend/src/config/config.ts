@@ -2,7 +2,7 @@ require('dotenv').config();
 
 export const config = {
     port: process.env.PORT || 3000,
-    limit_size: process.env.LIMIT_SIZE || 52428800,
+    limit_size: process.env.LIMIT_SIZE || 10485760,
     db: {
         host: process.env.DB_HOST || 'localhost',
         port: Number(process.env.DB_PORT || 3306),

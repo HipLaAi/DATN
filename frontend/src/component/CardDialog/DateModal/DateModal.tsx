@@ -27,10 +27,11 @@ const DateModal = (props: any) => {
 
     try {
       await updateITimeCardAPI(props.card_id, payload);
+      props.handleNotification("Cập nhật thời gian thành công.", "success");
       props.onClose();
 
     } catch (error) {
-      console.error("Error updating time card:", error);
+      props.handleNotification("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
     }
   };
 

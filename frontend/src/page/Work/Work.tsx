@@ -146,7 +146,7 @@ const Work = () => {
   return (
     <>
       <ModalCreateBoard isOpenModal={isModalOpen} handleCancel={handleCancel} idWorkspace={idWorkspace} />
-      <ModalCreateMember toggleModal={toggleModal} handleToggleModal={handleToggleModal} idWorkspace={idWorkspace} />
+      <ModalCreateMember workspace={data} toggleModal={toggleModal} handleToggleModal={handleToggleModal} idWorkspace={idWorkspace} />
       <div className={cx('work-page')}>
         <div ref={specificElementRef} />
         <Row justify='center'>

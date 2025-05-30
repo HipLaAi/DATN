@@ -144,10 +144,11 @@ export class BoardReponsitory {
 
     async getBoardByCustom(board: BoardModel): Promise<any> {
         try {
-            const sql = 'call GetBoardByCustom(?, ?, @err_code, @err_msg)';
+            const sql = 'call GetBoardByCustom(?, ?, ?, @err_code, @err_msg)';
             const [results] = await this.db.query(sql, [
                 board.board_id,
-                board.user_id
+                board.user_id,
+                board.card_status,
             ]);
 
             if (Array.isArray(results) && results.length > 0) {

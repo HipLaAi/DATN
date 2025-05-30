@@ -141,7 +141,7 @@ const Column: React.FC<Props> = ({ column }) => {
                   setting?.map((item: any) => {
                     if (item?.action === "create") {
                       const hasPermission =
-                        item.permission === "all guest" ||
+                        (item.permission === "all guest" && board?.role != null) ||
                         (item.permission === "just admin" && board?.role === "own");
 
                       return hasPermission ? (
@@ -163,8 +163,9 @@ const Column: React.FC<Props> = ({ column }) => {
                     size="large" style={{ width: "100%" }}
                     value={cardName}
                     onChange={(e) => setCardName(e.target.value)}
+                    onPressEnter={handleAddNewCard}
                   />
-                  <Button type='primary' data-no-dnd="true" onClick={handleAddNewCard}>Thêm thẻ</Button>
+                  <Button type='primary' data-no-dnd="true" onClick={handleAddNewCard} >Thêm thẻ</Button>
                   <CloseOutlined onClick={toggleOpenNewCardForm} />
                 </Flex>)
             }

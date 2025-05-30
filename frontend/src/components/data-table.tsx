@@ -21,8 +21,8 @@ export function DataTable() {
             <TableHead>Ảnh đại diện</TableHead>
             <TableHead>Tên</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Trạng thái</TableHead>
-            <TableHead>Mô tả</TableHead>
+            <TableHead>Quyền</TableHead>
+            <TableHead>Hình thức đăng ký</TableHead>
             <TableHead className="text-right">Ngày tạo</TableHead>
           </TableRow>
         </TableHeader>
@@ -39,9 +39,15 @@ export function DataTable() {
               </TableCell>
               <TableCell>{item?.name}</TableCell>
               <TableCell>{item?.email}</TableCell>
-              <TableCell>{item?.status}</TableCell>
-              <TableCell>{item?.description}</TableCell>
-              <TableCell className="text-right">{item?.created_at}</TableCell>
+              <TableCell>{item?.role}</TableCell>
+              <TableCell>
+                {
+                  item?.password === '' ? "Email" : "Hệ thống"
+                }
+              </TableCell>
+              <TableCell className="text-right">
+                {new Date(item?.created_at).toLocaleDateString()}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

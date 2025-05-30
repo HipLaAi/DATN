@@ -222,4 +222,33 @@ export class CardReponsitory {
             throw new Error(error.message);
         }
     }
+
+    async getCardDetailsInWeek(user_id: string): Promise<any> {
+        try {
+            const sql = 'call GetCardDetailsInWeek(?, @err_code, @err_msg)';
+            const [results] = await this.db.query(sql, [user_id]);
+
+            if (Array.isArray(results) && results.length > 0) {
+                return results;
+            }
+
+            return null;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
+
+    async updateStatusCard(card: CardModel): Promise<any> {
+        try {
+            const sql = 'call UpdateStatusCard(?, ?, @err_code, @err_msg)';
+            await this.db.query(sql, [
+                card.card_id,
+                card.status,
+            ]);
+
+            return true;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
 }

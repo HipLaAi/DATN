@@ -237,4 +237,39 @@ export class CardController {
             res.status(500).json({ message: error.message });
         }
     }
+
+    async getCardDetailsInWeek(req: Request, res: Response): Promise<any> {
+        try {
+            const user = (req as any).user;
+            const results = await this.cardService.getCardDetailsInWeek(user.user_id);
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async updateStatusCard(req: Request, res: Response): Promise<any> {
+        const { error, value } = cardSchema.validate(req.body); //check value
+
+        if (error) {
+            return res.status(422).json({ message: error.details[0].message });
+        }
+
+        try {
+            const id = req.params.id;
+
+            await this.cardService.updateStatusCard({
+                ...value,
+                card_id: id,
+            });
+
+            return res.status(200).json({ message: 'Success', results: true });
+        } catch (error: any) {
+            res.status(500).json({ message: error.message, results: false });
+        }
+    }
 }

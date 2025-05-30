@@ -15,6 +15,8 @@ cron.schedule('*/1 * * * * *', async () => {
         }
 
         notificationGateway.sendNotifications(notifications);
+
+        await notificationRepository.updateNotificationSent();
     } catch (err) {
         console.error('Error in Notification Scheduler:', err);
     }

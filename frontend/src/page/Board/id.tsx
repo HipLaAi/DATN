@@ -135,11 +135,11 @@ const BoardDetials = () => {
     setToggleModal(!toggleModel);
   };
 
-  const handleCreateGuest = async () => {
-    const response = await createGuestdAPI({
-      board_id: board?.board_id
-    })
-  }
+  // const handleCreateGuest = async () => {
+  //   const response = await createGuestdAPI({
+  //     board_id: board?.board_id
+  //   })
+  // }
 
   // Hàm xử lý cập nhật dữ liệu thay đổi
   const handleDataBoardChange = (field: any, value: any) => {

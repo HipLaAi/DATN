@@ -10,4 +10,5 @@ export const boardSchema = Joi.object({
     column_id_order: Joi.any().optional(),
     user_id: Joi.any().optional(),
     role: Joi.any().optional(),
+    card_status: Joi.any().optional(),
 })

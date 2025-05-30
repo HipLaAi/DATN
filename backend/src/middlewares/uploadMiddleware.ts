@@ -86,7 +86,7 @@ export class UploadMiddleware {
   private upload = multer({
     storage: multer.memoryStorage(),
     limits: {
-      fileSize: typeof config.limit_size === 'number' ? config.limit_size : parseInt(config.limit_size as string, 10) || 52428800,
+      fileSize: typeof config.limit_size === 'number' ? config.limit_size : parseInt(config.limit_size as string, 10) || 10485760,
     },
     fileFilter: (req, file, cb) => {
       if (file.mimetype === 'application/zip') {

@@ -28,6 +28,7 @@ import HomeLayout from "../layout/HomeLayout/HomeLayout";
 import { SectionCards } from "../components/section-cards";
 import { ChartAreaInteractive } from "../components/chart-area-interactive";
 import { DataTable } from "../components/data-table";
+import { Report } from "../components/report-user";
 import { MainRegister } from "../component/Auth/MainRegister";
 import { VerificationEmail } from "../component/Auth/VerificationEmail";
 import { InforAccount } from "../component/Auth/InforAccount";
@@ -142,7 +143,7 @@ const route = createBrowserRouter([
     element: <HomeLayout />,
     children: [
       {
-        path: "admin/dashboard",
+        path: URL.ADMIN.HOME,
         element:
           <>
             <SectionCards />
@@ -152,9 +153,14 @@ const route = createBrowserRouter([
           </>
       },
       {
-        path: "admin/user",
+        path: URL.ADMIN.USER,
         element:
           <DataTable />
+      },
+      {
+        path: URL.ADMIN.REPORT,
+        element:
+          <Report />
       },
     ]
   },

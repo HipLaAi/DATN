@@ -12,24 +12,57 @@ import { Link, useNavigate } from "react-router-dom"
 import { URL } from "../utils/url"
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { googleLogin, login } from "../services/User/user.service"
+import decodeJWT from "../services/Auth/auth.service "
+import { toast, ToastContainer, ToastOptions } from "react-toastify"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const navigate = useNavigate();
+
+  const handleToast = (message: string, status: "success" | "error") => {
+    const toastOptions: ToastOptions = {
+      toastId: message,
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: false,
+      draggable: true,
+      progress: undefined,
+    };
+
+    const toastActions = {
+      success: () => toast.success(message, toastOptions),
+      error: () => toast.error(message, toastOptions),
+    };
+
+    toastActions[status]?.();
+  };
+
   const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
     const result = await googleLogin({ token_id: credentialResponse.credential });
     if (result) {
       localStorage.setItem("accessToken", result.accessToken);
       localStorage.setItem("name", result.name);
       localStorage.setItem("avatar", result.avatar);
-      navigate(URL.HOME.HOME)
+      const userInfo = decodeJWT(result.accessToken);
+      if (userInfo.role === "user") {
+        navigate(URL.HOME.HOME)
+      }
+      else if (userInfo.role === "admin") {
+        navigate(URL.ADMIN.HOME)
+      }
+    }
+    else {
+      handleToast("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
     }
   }
 
   const handleGoogleLoginError = () => {
-    console.error("Google login failed")
+    console.error("Google login failed");
+    handleToast("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -39,13 +72,26 @@ export function LoginForm({
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const response = await login({ email: email, password: password });
-    if (response) {
-      localStorage.setItem("accessToken", response.accessToken)
-      localStorage.setItem("name", response.name);
-      localStorage.setItem("avatar", response.avatar);
-      navigate(URL.HOME.HOME);
+    try {
+      const response = await login({ email: email, password: password });
+      if (response) {
+        localStorage.setItem("accessToken", response.accessToken)
+        localStorage.setItem("name", response.name);
+        localStorage.setItem("avatar", response.avatar);
+        const userInfo = decodeJWT(response.accessToken);
+        if (userInfo.role === "user") {
+          navigate(URL.HOME.HOME)
+        }
+        else if (userInfo.role === "admin") {
+          navigate(URL.ADMIN.HOME)
+        }
+      } else {
+        handleToast("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
+      }
+    } catch (error) {
+      handleToast("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
     }
+
   };
 
   return (
@@ -137,6 +183,7 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
+      <ToastContainer />
     </div>
   )
 }

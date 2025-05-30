@@ -19,21 +19,23 @@ export class UserService {
                 user_id: results.user_id,
                 name: results.name,
                 email: results.email,
-                avatar: results.avatar
+                avatar: results.avatar,
+                role: results.role
             };
         }
         return null;
     }
 
     async googleLogin(payload: any): Promise<any> {
-        const user = await this.userReponsitory.getUserByEmail(payload.email);
+        const user = await this.userReponsitory.getUserByAccount(payload);
         if (user) {
-            if (user[0].password == '') {
+            if (user.password == '') {
                 return {
-                    user_id: user[0].user_id,
-                    name: user[0].name,
-                    email: user[0].email,
-                    avatar: user[0].avatar
+                    user_id: user.user_id,
+                    name: user.name,
+                    email: user.email,
+                    avatar: user.avatar,
+                    role: user.role
                 };
             } else {
                 return false;

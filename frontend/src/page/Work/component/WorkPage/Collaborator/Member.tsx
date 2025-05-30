@@ -155,7 +155,7 @@ const Member = () => {
                                 type="dashed"
                                 danger
                             >
-                                Rời khỏi bảng
+                                Rời khỏi không gian làm việc
                             </Button>
                         </Flex>
                     </List.Item>

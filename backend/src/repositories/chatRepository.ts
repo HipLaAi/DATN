@@ -8,7 +8,7 @@ export class ChatReponsitory {
 
     async getChatResponse(request: string, option: any, user: any): Promise<any> {
         try {
-            if (request.toLowerCase().includes("nhiệm vụ") || request.toLowerCase().includes("công việc") || request.toLowerCase().includes("hôm nay")) {
+            if (request.toLowerCase().includes("nhiệm vụ") || request.toLowerCase().includes("thẻ") || request.toLowerCase().includes("công việc") || request.toLowerCase().includes("hôm nay")) {
                 if (option != "allcard") {
                     const sql = 'call GetBoardByID(?, ?, @err_code, @err_msg)';
                     const [results] = await this.db.query(sql, [option, user.user_id]);
@@ -76,7 +76,7 @@ export class ChatReponsitory {
                         + Nhiệm vụ:
                         ${column.card.map((card: any) => `
                             - Tên nhiệm vụ: ${card.name}
-                            - Trạng thái: ${card.status || "Không có trạng thái"}
+                            - Trạng thái: ${card.status === "true" ? "Đã hoàn thành" : card.status === "false" ? "Chưa hoàn thành" : "Không có trạng thái"}
                             - Thời gian bắt đầu nhiệm vụ: ${formatDate(card.start_date) || "Chưa cài thời gian"}
                             - Thời gian kết thúc nhiệm vụ: ${formatDate(card.end_date) || "Chưa cài thời gian"}
                             - Người tham gia:

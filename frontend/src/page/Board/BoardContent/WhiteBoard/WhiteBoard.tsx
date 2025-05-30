@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import CanvasDraw from 'react-canvas-draw';
 import { Button, Col, Flex } from 'antd';
+import { ClearOutlined, UndoOutlined } from '@ant-design/icons';
 
 const Whiteboard = () => {
     const canvasRef = useRef<CanvasDraw | null>(null);
@@ -24,17 +25,13 @@ const Whiteboard = () => {
                     ref={canvasRef}
                     canvasWidth={1200}
                     canvasHeight={550}
-                    brushRadius={2}
-                    lazyRadius={5}
+                    brushRadius={1}
+                    lazyRadius={2}
                 />
             </Col>
             <Flex gap={20}>
-                <Button type="primary" onClick={clearCanvas}>
-                    Clear
-                </Button>
-                <Button type="default" onClick={undoLastAction}>
-                    Undo
-                </Button>
+                <Button type="primary" onClick={clearCanvas} icon={<ClearOutlined />} />
+                <Button type="default" onClick={undoLastAction} icon={<UndoOutlined />} />
             </Flex>
         </Flex>
     );
