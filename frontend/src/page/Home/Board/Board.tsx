@@ -56,7 +56,15 @@ const Board = () => {
                         <SymbolicTable key={item.board_id} path={URL.BOARD.BUILDER.LIST(items.workspace_id, item.board_id)} title={item.name} background={item?.background?.replace("D:\\DA4\\frontend\\", "")} />
                       ))
                     }
-                    <Button style={{ height: "100%" }} onClick={() => showModal(items.workspace_id)}>Tạo bảng</Button>
+
+                    {items?.boards?.length < 10 ? (
+                      <Button style={{ height: "100%" }} onClick={() => showModal(items.workspace_id)}>
+                        Tạo bảng (còn lại {10 - items?.boards?.length})
+                      </Button>
+                    ) : (
+                      <></>
+                    )}
+                    {/* <Button style={{ height: "100%" }} onClick={() => showModal(items.workspace_id)}>Tạo bảng</Button> */}
                   </div>
                 </div>
               )

@@ -141,8 +141,8 @@ const Column: React.FC<Props> = ({ column }) => {
                   setting?.map((item: any) => {
                     if (item?.action === "create") {
                       const hasPermission =
-                        (item.permission === "all guest" && board?.role != null) ||
-                        (item.permission === "just admin" && board?.role === "own");
+                        ((item.permission === "all guest" && board?.role != null) ||
+                          (item.permission === "just admin" && board?.role === "own")) && (column?.card?.length < 10);
 
                       return hasPermission ? (
                         <>

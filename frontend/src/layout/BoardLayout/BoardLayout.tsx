@@ -98,13 +98,15 @@ const BoardLayout = () => {
 
   const [boardFilter, setBoardFilter] = useState<any[]>([]);
 
-  const handleFillter = async (boardID: any, userID: any, cardStatus: any) => {
-    if (userID == "" && cardStatus == "") {
+  const handleFillter = async (boardID: any, userID: any, cardStatus: any, labelboardID: any, expired: any) => {
+    if (userID == null && cardStatus == null && labelboardID == null && expired == null) {
       setBoardFilter([]);
     } else {
       const reponse = await getBoardByCustomAPI(boardID, {
         user_id: userID,
         card_status: cardStatus,
+        labelboard_id: labelboardID,
+        expired_only: expired,
       })
       setBoardFilter(reponse);
     }

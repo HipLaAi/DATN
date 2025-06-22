@@ -60,8 +60,10 @@ const TableWorkPage = () => {
               </Flex>
             </Flex> */}
             <div className={cx('middle-main')}>
-              {data?.role === "own" || data?.role === "member" ? (
-                <Button style={{ height: "100%" }} onClick={showModal}>Tạo bảng</Button>
+              {(data?.role === "own" || data?.role === "member") && (data.board.length < 10) ? (
+                <Button style={{ height: "100%" }} onClick={showModal}>
+                  Tạo bảng (còn lại {10 - data.board.length})
+                </Button>
               ) : (
                 <></>
               )}

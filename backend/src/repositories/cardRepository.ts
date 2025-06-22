@@ -251,4 +251,18 @@ export class CardReponsitory {
             throw new Error(error.message);
         }
     }
+
+    async getCardByStatus(boardID: string): Promise<any> {
+        try {
+            const sql = 'call GetCardByStatus(?, @err_code, @err_msg)';
+            const [results] = await this.db.query(sql, [boardID]);
+
+            if (Array.isArray(results) && results.length > 0) {
+                return results;
+            }
+            return true;
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
 }

@@ -79,3 +79,8 @@ export const updateStatusCardAPI = async (id: any, data: any): Promise<any> => {
     const res = await apiServer?.post(`/api/card/updatestatuscard/` + id, data);
     return res?.data;
 };
+
+export const getCardByStatusAPI = async (id: any): Promise<any> => {
+    const res = await apiServer?.get(`/api/card/getbystatus/` + id);
+    return res?.data;
+};

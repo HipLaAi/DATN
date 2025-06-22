@@ -172,7 +172,7 @@ const CardDialog = (props: any) => {
         newData.checklistname.push(response)
         setCheckListName("")
         setData(newData)
-        handelCreateActivity("đã thêm danh sách công việc " + checkListName + " vào thẻ này")
+        handelCreateActivity("đã thêm danh sách công việc " + checkListName + " vào thẻ này", userId)
         handleNotification("Tạo thành công.", "success");
     }
 
@@ -195,7 +195,7 @@ const CardDialog = (props: any) => {
     const handleDeleteCheckListName = async (id: string) => {
         const newData = { ...data }
         const checklistToDelete = data.checklistname.find((item: any) => item.checklistname_id === id);
-        handelCreateActivity(`đã xóa danh sách công việc "${checklistToDelete.name}" của thẻ này`);
+        handelCreateActivity(`đã xóa danh sách công việc "${checklistToDelete.name}" của thẻ này`, userId);
         handleNotification("Xóa thành công.", "success");
         newData.checklistname = newData.checklistname.filter((c: any) => c.checklistname_id != id)
         setData(newData)
@@ -215,7 +215,7 @@ const CardDialog = (props: any) => {
     //Hàm người dùng tham gia thẻ
     const handleUseJoinCard = async (user_id: any) => {
         handleToast("Thành công tham gia vào thẻ!", user_id)
-        handelCreateActivity("đã tham gia thẻ này");
+        handelCreateActivity("đã tham gia thẻ này", user_id);
         const respone = await updateUserJoinCardAPI(data.card_id, {
             user_id: user_id,
         })
@@ -230,7 +230,7 @@ const CardDialog = (props: any) => {
     //Hàm người dùng rời khỏi thẻ
     const handleUseOutCard = async (user_id: any) => {
         handleToast("Rời khỏi thẻ thành công!", user_id)
-        handelCreateActivity("đã rời khỏi thẻ này");
+        handelCreateActivity("đã rời khỏi thẻ này", user_id);
         const respone = await updateUserOutCardAPI(data.card_id, {
             user_id: user_id,
         })
@@ -300,7 +300,7 @@ const CardDialog = (props: any) => {
         const reponse = await updateCheckListAPI(id, data);
         setData(reponse);
         handleToast("Cập nhật danh sách công việc thành công", id + user_id + status + name)
-        handelCreateActivity(`đã cập nhật trạng thái công việc "${name}" của thẻ này`);
+        handelCreateActivity(`đã cập nhật trạng thái công việc "${name}" của thẻ này`, userId);
     }
 
     //Hàm xóa file
@@ -482,10 +482,10 @@ const CardDialog = (props: any) => {
     };
 
     // Hàm ghi hoạt động
-    const handelCreateActivity = async (description: any) => {
+    const handelCreateActivity = async (description: any, userID: any) => {
         try {
             const response = await createActivityCardAPI({
-                user_id: userId,
+                user_id: userID,
                 card_id: cardData?.card_id,
                 description: description
             })
@@ -517,10 +517,19 @@ const CardDialog = (props: any) => {
                     <Col>
                         <Flex vertical justify='center' gap="10px">
                             <Flex justify="start" align="center" gap={10}>
-                                <Checkbox
-                                    checked={status === 'true'}
-                                    onChange={(e) => handelStatusCard(e.target.checked)}
-                                />
+                                {
+                                    props?.board?.role != null ? (
+                                        <Checkbox
+                                            checked={status === 'true'}
+                                            onChange={(e) => handelStatusCard(e.target.checked)}
+                                        />
+                                    ) : (
+                                        <Checkbox
+                                            checked={status === 'true'}
+                                            disabled
+                                        />
+                                    )
+                                }
                                 <Title level={4}>{data?.name}</Title>
                             </Flex>
                             <Text type="secondary">Trong danh sách {data?.column_name}</Text>
@@ -726,7 +735,7 @@ const CardDialog = (props: any) => {
                                                                             {
                                                                                 props?.board?.guest?.find((guest: any) => guest.user_id === i.user_id) ? (
                                                                                     <div className={cx('listwork-button-show')}>
-                                                                                        <Button icon={<ClockCircleOutlined />} onClick={handleOpenModal}></Button>
+                                                                                        {/* <Button icon={<ClockCircleOutlined />} onClick={handleOpenModal}></Button> */}
 
                                                                                         <CustomPop title={
                                                                                             <>
@@ -1156,7 +1165,7 @@ const CardDialog = (props: any) => {
                                 } content={
                                     <>
                                         <Flex vertical gap="10px">
-                                            <Input style={{ width: "100%" }} placeholder='Tìm kiếm thành viên trong nhóm' />
+                                            {/* <Input style={{ width: "100%" }} placeholder='Tìm kiếm thành viên trong nhóm' /> */}
                                             <Menu
                                                 style={{ width: 256 }}
                                                 defaultSelectedKeys={['1']}

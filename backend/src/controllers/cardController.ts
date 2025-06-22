@@ -272,4 +272,19 @@ export class CardController {
             res.status(500).json({ message: error.message, results: false });
         }
     }
+
+    async getCardByStatus(req: Request, res: Response): Promise<any> {
+        try {
+            const id = req.params.id;
+            const results = await this.cardService.getCardByStatus(id);
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.json({ message: 'Not exists' });
+            }
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
 }

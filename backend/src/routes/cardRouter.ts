@@ -105,4 +105,10 @@ cardRouter.post(
     cardController.updateStatusCard.bind(cardController)
 );
 
+cardRouter.get(
+    '/getbystatus/:id',
+    authenticate,
+    cardController.getCardByStatus.bind(cardController)
+);
+
 export default cardRouter;

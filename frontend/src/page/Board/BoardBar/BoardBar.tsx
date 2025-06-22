@@ -42,28 +42,54 @@ const BoardBar = (props: any) => {
   const [activeMenu, setActiveMenu] = useState<string>("Menu");
   const [isEditing, setIsEditing] = useState(false);
   const { handleFillter, handleCreateConversation } = useOutletContext<{ handleFillter: any, handleCreateConversation: any }>();
-  const [selectedValue, setSelectedValue] = useState<number | string | null>("");
+  const [selectedValue, setSelectedValue] = useState<number | string | null>(null);
   const [selectedCardStatus, setSelectedCardStatus] = useState<number | string | null>(null);
+  const [selectedLabel, setSelectedLabel] = useState<number | string | null>(null);
+  const [selectedExpired, setSelectedExpired] = useState<boolean | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
   const [nameBoard, setNameBoard] = useState(board?.name);
+  const [labelBoard, setLabelBoard] = useState<any>();
+
+  useEffect(() => {
+    fetchLabelBoard();
+  }, [id]);
+
+  const fetchLabelBoard = async () => {
+    if (id) {
+      const results = await getLabelBoardAPI(id)
+      setLabelBoard(results);
+    }
+  }
 
   const handleReset = () => {
     props.setCheckUpdateColumn((value: any) => !value);
-    setSelectedValue("");
+    setSelectedValue(null);
     setSelectedCardStatus(null);
-    handleFillter(id, "", "");
+    setSelectedLabel(null);
+    setSelectedExpired(null);
+    handleFillter(id, null, null, null, null);
   }
 
   const handleSelect = (id: any, value: any) => {
     setSelectedValue(value);
-    handleFillter(id, value, selectedCardStatus);
+    handleFillter(id, value, selectedCardStatus, selectedLabel, selectedExpired);
   };
 
   const handleSelectCardStatus = (id: any, value: any) => {
     setSelectedCardStatus(value);
-    handleFillter(id, selectedValue, value);
+    handleFillter(id, selectedValue, value, selectedLabel, selectedExpired);
+  };
+
+  const handleSelectedLabel = (id: any, value: any) => {
+    setSelectedLabel(value);
+    handleFillter(id, selectedValue, selectedCardStatus, value, selectedExpired);
+  };
+
+  const handleSelectedExpired = (id: any, value: any) => {
+    setSelectedExpired(value);
+    handleFillter(id, selectedValue, selectedCardStatus, selectedLabel, value);
   };
 
   useEffect(() => {
@@ -374,11 +400,17 @@ const BoardBar = (props: any) => {
                 <Text strong>Bảng trắng</Text>
               </Button>
             </Link>
-            <Link to={URL.BOARD.BUILDER.DASHBOARD(idWorkspace, id)}>
-              <Button type="text">
-                <Text strong>Bảng điều khiển</Text>
-              </Button>
-            </Link>
+            {
+              board?.role === "own" ? (
+                <Link to={URL.BOARD.BUILDER.DASHBOARD(idWorkspace, id)}>
+                  <Button type="text">
+                    <Text strong>Bảng điều khiển</Text>
+                  </Button>
+                </Link>
+              ) : (
+                <></>
+              )
+            }
           </Flex>
         </Col>
         <Col span={8}>
@@ -404,7 +436,7 @@ const BoardBar = (props: any) => {
                     value={selectedValue}
                     onChange={(e) => handleSelect(id, e.target.value)}>
                     <Space direction="vertical">
-                      <Radio value={null}>
+                      <Radio value={0}>
                         <Flex justify="center" gap="10px" align="center">
                           <Avatar icon={<UserOutlined />} />
                           <Text>Không có thành viên tham gia</Text>
@@ -422,7 +454,7 @@ const BoardBar = (props: any) => {
                       }
                     </Space>
                   </Radio.Group>
-                  {/* Lọc Theo thành viên tham gia */}
+                  {/* Lọc Theo trạng thái của thẻ */}
                   <Text strong>Trạng thái thẻ</Text>
                   <Radio.Group
                     value={selectedCardStatus}
@@ -438,6 +470,55 @@ const BoardBar = (props: any) => {
                           <Text>Chưa hoàn thành</Text>
                         </Flex>
                       </Radio>
+                    </Space>
+                  </Radio.Group>
+                  {/* Lọc Theo thời hạn */}
+                  <Text strong>Thời hạn</Text>
+                  <Radio.Group
+                    value={selectedExpired}
+                    onChange={(e) => handleSelectedExpired(id, e.target.value)}>
+                    <Space direction="vertical">
+                      <Radio value={true}>
+                        <Flex justify="center" gap="10px" align="center">
+                          <Text>Quá hạn</Text>
+                        </Flex>
+                      </Radio>
+                      <Radio value={false}>
+                        <Flex justify="center" gap="10px" align="center">
+                          <Text>Không có ngày hết hạn</Text>
+                        </Flex>
+                      </Radio>
+                    </Space>
+                  </Radio.Group>
+                  {/* Lọc Theo nhãn của thẻ */}
+                  <Text strong>Nhãn</Text>
+                  <Radio.Group
+                    value={selectedLabel}
+                    onChange={(e) => handleSelectedLabel(id, e.target.value)}>
+                    <Space direction="vertical">
+                      {
+                        labelBoard?.map((item: any, index: any) => (
+                          <Radio value={item?.labelboard_id}>
+                            <Flex justify="center" gap="10px" align="center">
+                              <Button type='text' style={{ backgroundColor: item?.background, width: "250px" }}>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    maxWidth: "100%",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    fontWeight: "500",
+                                    color: "#2a2a2a"
+                                  }}
+                                >
+                                  {item?.name}
+                                </span>
+                              </Button>
+                            </Flex>
+                          </Radio>
+                        ))
+                      }
                     </Space>
                   </Radio.Group>
                 </Flex>

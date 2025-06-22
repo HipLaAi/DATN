@@ -69,4 +69,8 @@ export class CardService {
     async updateStatusCard(card: CardModel): Promise<any> {
         return this.cardReponsitory.updateStatusCard(card);
     }
+
+    async getCardByStatus(id: string): Promise<any> {
+        return this.cardReponsitory.getCardByStatus(id);
+    }
 }

@@ -3317,3 +3317,446 @@ DELIMITER ;
 call GetBoardByCustom(67, 45 , 'true', @err, @msg);
 
 
+
+use datn;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetNotificationRead`(
+in p_user_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		select * from `notification`
+		where is_sent = 1 and user_id = p_user_id
+        order by notification_id desc
+        limit 15;
+	commit;
+end$$
+DELIMITER ;
+
+
+
+
+
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetCardByStatus`(
+in p_board_id int,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		SELECT 
+			CASE 
+				WHEN c.status = 'true' THEN 'Hoàn thành'
+				WHEN c.status = 'false' THEN 'Chưa hoàn thành'
+				ELSE 'Trạng thái khác'
+			END AS card_status,
+			COUNT(c.card_id) AS 'Số thẻ'
+		FROM `card` c
+		WHERE c.column_id IN (
+			SELECT column_id
+			FROM `column`
+			WHERE board_id = p_board_id
+		)
+		GROUP BY c.status;
+	commit;
+end$$
+DELIMITER ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetBoardByCustom`(
+in p_board_id int,
+in p_user_id int,
+in p_card_status varchar(50),
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		SELECT 
+		b.board_id,
+		b.name,
+		b.description,
+		b.background,
+		b.column_id_order,
+		(SELECT JSON_ARRAYAGG(
+			   JSON_OBJECT('column_id', sorted_columns.column_id, 
+							'name', sorted_columns.name, 
+                            'background', sorted_columns.background,
+                            'status', sorted_columns.status,
+							'card',
+									(SELECT JSON_ARRAYAGG(
+										   JSON_OBJECT('card_id', sorted_cards.card_id, 
+														'name', sorted_cards.name,
+														'description', sorted_cards.description,
+                                                        'background', sorted_cards.background, 
+                                                        'status', sorted_cards.status,
+                                                        'start_date', sorted_cards.start_date,
+                                                        'end_date', sorted_cards.end_date,
+                                                        'userjoin',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'user_id', u.user_id, 
+																   'name', u.name,
+																   'email', u.email,
+																   'avatar', u.avatar
+																   )
+															) 
+														 FROM `user` u
+														 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = sorted_cards.card_id)) > 0
+                                                         ),
+														'label',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'label_id', l.label_id, 
+																   'name', lb.name,
+																   'background', lb.background
+																   )
+															) 
+														 FROM `label` l
+                                                         JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
+														 WHERE l.card_id = sorted_cards.card_id
+                                                         )
+										   )
+									   ) 
+									FROM (
+										SELECT 
+											cd.card_id, 
+											cd.name,
+                                            cd.background,
+                                            cd.description,
+                                            cd.start_date,
+                                            cd.end_date,
+                                            cd.status,
+											FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) AS order_value
+										FROM `card` cd
+										RIGHT JOIN `column` cl ON cl.column_id = cd.column_id
+										WHERE FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) > 0
+										AND (
+												(p_user_id IS NULL AND (cd.user_id_join = '' OR cd.user_id_join IS NULL)) 
+												OR 
+												(p_user_id IS NOT NULL AND EXISTS (
+													SELECT 1 
+													FROM `user` u_check 
+													WHERE u_check.user_id = p_user_id 
+													AND FIND_IN_SET(u_check.user_id, cd.user_id_join) > 0
+												))
+											)
+										AND (
+											p_card_status IS NULL OR cd.status = p_card_status
+                                        )
+                                        ORDER BY order_value
+										) AS sorted_cards
+									)
+			   )
+		   ) 
+		FROM (
+			SELECT 
+				cl.column_id, 
+				cl.name,
+                cl.background,
+                cl.status,
+				FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) AS order_value
+			FROM `column` cl
+			RIGHT JOIN `board` bd ON bd.board_id = cl.board_id
+			WHERE FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) > 0
+			ORDER BY order_value
+			) AS sorted_columns
+		) AS `column`,
+		(SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                   'user_id', g.user_id, 
+                   'name', u.name,
+                   'email', u.email,
+                   'avatar', u.avatar,
+                   'status', u.status,
+                   'role', g.role
+				   )
+			   ) 
+		 FROM `guest` g
+		 LEFT JOIN `user` u ON g.user_id = u.user_id
+		 WHERE g.board_id = b.board_id
+		) AS `guest`
+	FROM 
+		`board` b
+	WHERE 
+		b.board_id = p_board_id;
+	commit;
+end$$
+DELIMITER ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetBoardByCustom`(
+in p_board_id int,
+in p_user_id int,
+in p_card_status varchar(50),
+in p_labelboard_id int,
+in p_expired_only boolean,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		SELECT 
+		b.board_id,
+		b.name,
+		b.description,
+		b.background,
+		b.column_id_order,
+		(SELECT JSON_ARRAYAGG(
+			   JSON_OBJECT('column_id', sorted_columns.column_id, 
+							'name', sorted_columns.name, 
+                            'background', sorted_columns.background,
+                            'status', sorted_columns.status,
+							'card',
+									(SELECT JSON_ARRAYAGG(
+										   JSON_OBJECT('card_id', sorted_cards.card_id, 
+														'name', sorted_cards.name,
+														'description', sorted_cards.description,
+                                                        'background', sorted_cards.background, 
+                                                        'status', sorted_cards.status,
+                                                        'start_date', sorted_cards.start_date,
+                                                        'end_date', sorted_cards.end_date,
+                                                        'userjoin',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'user_id', u.user_id, 
+																   'name', u.name,
+																   'email', u.email,
+																   'avatar', u.avatar
+																   )
+															) 
+														 FROM `user` u
+														 WHERE FIND_IN_SET(u.user_id, (SELECT user_id_join FROM `card` WHERE card_id = sorted_cards.card_id)) > 0
+                                                         ),
+														'label',
+                                                        (SELECT JSON_ARRAYAGG(
+															   JSON_OBJECT(
+																   'label_id', l.label_id, 
+                                                                   'labelboard_id', l.labelboard_id,
+																   'name', lb.name,
+																   'background', lb.background
+																   )
+															) 
+														 FROM `label` l
+                                                         JOIN `labelboard` lb ON l.labelboard_id = lb.labelboard_id
+														 WHERE l.card_id = sorted_cards.card_id
+                                                         )
+										   )
+									   ) 
+									FROM (
+										SELECT 
+											cd.card_id, 
+											cd.name,
+                                            cd.background,
+                                            cd.description,
+                                            cd.start_date,
+                                            cd.end_date,
+                                            cd.status,
+											FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) AS order_value
+										FROM `card` cd
+										RIGHT JOIN `column` cl ON cl.column_id = cd.column_id
+										WHERE FIND_IN_SET(cd.card_id, (SELECT card_id_order FROM `column` WHERE column_id = sorted_columns.column_id)) > 0
+										AND (
+										-- Nếu p_user_id = 0, lọc thẻ không có người tham gia
+										(p_user_id = 0 AND (cd.user_id_join = '' OR cd.user_id_join IS NULL))
+										
+										-- Nếu p_user_id là NULL, không lọc theo người tham gia
+										OR (p_user_id IS NULL)
+										
+										-- Nếu p_user_id khác NULL và khác 0, lọc thẻ có người tham gia là p_user_id
+										OR (p_user_id IS NOT NULL AND p_user_id <> 0 AND EXISTS (
+											SELECT 1 
+											FROM `user` u_check 
+											WHERE u_check.user_id = p_user_id 
+											AND FIND_IN_SET(u_check.user_id, cd.user_id_join) > 0
+										)))
+										AND (
+											p_card_status IS NULL OR cd.status = p_card_status
+                                        )
+                                        AND (
+                                            p_labelboard_id IS NULL OR EXISTS (
+                                                SELECT 1 FROM `label` l
+                                                WHERE l.card_id = cd.card_id AND l.labelboard_id = p_labelboard_id
+                                            )
+                                        )
+										AND (
+												p_expired_only IS NULL 
+												OR (p_expired_only = TRUE AND cd.end_date < NOW() AND cd.status = 'false')
+												OR (p_expired_only = FALSE AND cd.end_date IS NULL)
+										)
+                                        ORDER BY order_value
+										) AS sorted_cards
+									)
+			   )
+		   ) 
+		FROM (
+			SELECT 
+				cl.column_id, 
+				cl.name,
+                cl.background,
+                cl.status,
+				FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) AS order_value
+			FROM `column` cl
+			RIGHT JOIN `board` bd ON bd.board_id = cl.board_id
+			WHERE FIND_IN_SET(cl.column_id, (SELECT column_id_order FROM board WHERE board_id = p_board_id)) > 0
+			ORDER BY order_value
+			) AS sorted_columns
+		) AS `column`,
+		(SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                   'user_id', g.user_id, 
+                   'name', u.name,
+                   'email', u.email,
+                   'avatar', u.avatar,
+                   'status', u.status,
+                   'role', g.role
+				   )
+			   ) 
+		 FROM `guest` g
+		 LEFT JOIN `user` u ON g.user_id = u.user_id
+		 WHERE g.board_id = b.board_id
+		) AS `guest`
+	FROM 
+		`board` b
+	WHERE 
+		b.board_id = p_board_id;
+	commit;
+end$$
+DELIMITER ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateColumnWhenMoveCard`(
+in p_column_id int,
+in p_card_id int,
+in p_card_id_order_new longtext,
+in p_card_id_order_old longtext,
+out p_error_code int,
+out p_error_message varchar(500)
+)
+begin
+	declare exit handler for sqlexception
+    begin
+		get diagnostics condition 1 p_error_code = returned_sqlstate, p_error_message = message_text;
+    end;
+    set p_error_code = 0;
+    set p_error_message = '';
+    start transaction;
+		begin
+			update `column`
+			set
+			`card_id_order` = p_card_id_order_new
+			where `column_id` = p_column_id;
+        end;
+		if((select column_id from `card` where card_id = p_card_id) <> p_column_id)
+		then
+				update `column`
+				set
+				`card_id_order` = p_card_id_order_old
+				where `column_id` = (select column_id from `card` where card_id = p_card_id);
+				
+				update `card`
+				set
+				`column_id` = p_column_id
+				where `card_id` = p_card_id;
+		end if;
+	commit;
+end$$
+DELIMITER ;
+
+use datn;
+
+SHOW TRIGGERS;
+
+
+
+
+
+
+
+

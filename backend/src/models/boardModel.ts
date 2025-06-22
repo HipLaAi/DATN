@@ -10,4 +10,6 @@ export interface BoardModel {
     user_id?: number;
     role?: string;
     card_status?: string;
+    labelboard_id?: number;
+    expired_only?: boolean;
 }

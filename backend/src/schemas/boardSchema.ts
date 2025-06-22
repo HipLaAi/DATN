@@ -11,4 +11,6 @@ export const boardSchema = Joi.object({
     user_id: Joi.any().optional(),
     role: Joi.any().optional(),
     card_status: Joi.any().optional(),
+    labelboard_id: Joi.any().optional(),
+    expired_only: Joi.any().optional(),
 })
